@@ -1,0 +1,150 @@
+**
+**ANSA_VERSION;16.2.0;
+**
+**
+** file created by  A N S A  Thu Apr 13 15:12:08 2017
+**
+** output from :
+**
+** /data/fem/users/siegl/Skolici_priklady/spring/beam_mass_point/beam_mass_point02.ansa
+** 2.ansa
+**
+*HEADING
+
+**
+**
+**
+*NODE
+       1,                       0.,                       1.,                       0.
+    3642,      -0.8680424633206966,    -0.015468665699083298,       11.000014259748237
+    3643,   2.6195397532723717E-15,   1.8865348527492346E-14,       12.500000000000002
+    3644,      -0.8677369779702875,    -0.005818937218157391,       12.000568661278772
+    3645,       0.8653806280288059,   -0.0038328420688002254,       11.998909946844597
+    3646,    -0.000582106331995231,    -0.019287832507086815,       10.500093091999181
+    3647,       0.8652695037140655,    -0.013459469993747104,       11.000727586182927
+    7732,         40.8769774487885,      -0.1187453853328591,       11.011031051390143
+    7733,        40.87199516848225,    -0.039669432400961505,       12.004045035312135
+    7734,        39.99999999999999,   2.2367551523394894E-14,                     12.5
+    7735,       39.133095820994626,    -0.040017377034007776,       11.995270191359248
+    7736,        39.13815463259174,     -0.11909155449428727,       11.002278697490405
+    7737,        40.01011770289347,     -0.15875993903987726,        10.50633681033024
+    8766,                      50.,                       0.,                       0.
+    8805,                     -10.,                       0.,                       0.
+    8815,      -25.000000000000004,        5.000000000000016,       5.0000000000000036
+    8820,                     -25.,        5.000000000000016,      -5.0000000000000036
+    8821,                     -25.,      -4.9999999999999964,        4.999999999999982
+    8827,                     -25.,       -4.999999999999993,       -5.000000000000007
+**
+** BEAM ELEMENTS
+**
+*ELEMENT, TYPE=B31, ELSET=P4;BEAM_SECTION
+       2,     8766,     8805,        1
+**
+** 
+**
+**
+** MASS and ROTARY
+**
+*MASS, ELSET=MS1;mass01
+                  0.0005,
+*ELEMENT, TYPE=MASS, ELSET=MS1;mass01
+       1,     8805
+**
+** 
+**
+**
+** SECTION DATA
+**
+*SHELL SECTION, ELSET=P1;SHELL_SECTION, MATERIAL=M1;steel
+                      1.,
+*SHELL SECTION, ELSET=P3;SHELL_SECTION, MATERIAL=M2;aluminium
+                     74.,
+*BEAM GENERAL SECTION, ELSET=P4;BEAM_SECTION, SECTION=CIRC, DENSITY=7.56286E-8, ZERO=0., POISSON=0.3
+                      1.,
+
+                    18.8,
+**
+** MATERIALS
+**
+*MATERIAL, NAME=M1;steel
+*DENSITY
+                 7.85E-9,
+*ELASTIC, TYPE=ISOTROPIC
+                 210000.,                      0.3
+*MATERIAL, NAME=M2;aluminium
+*DENSITY
+                  2.7E-9,
+*ELASTIC, TYPE=ISOTROPIC
+                  70000.,                      0.3
+**
+** 
+**
+** 
+** SETS
+** 
+**ANSA_ID;1;
+*NSET, NSET=fix
+
+**
+** BOUNDARY
+**
+*BOUNDARY, FIXED
+**ANSA_ID;1;
+    8766,        1,        6
+**
+** STEPS
+**
+**ANSA_ID;1;
+**
+** STEP 1
+**
+*STEP, NAME=STEP 1, NLGEOM=NO
+*STATIC
+                     0.1,                       1.
+**
+** DLOAD  (TYPE = GRAV)
+**
+*DLOAD
+, GRAV,                    9810.,                      -1.,                       0.,                       0.
+*OUTPUT, FIELD
+*NODE OUTPUT
+U,
+*ELEMENT OUTPUT
+PEEQ,
+S,
+*END STEP
+**ANSA_ID;2;
+**
+** STEP 2
+**
+*STEP, NAME=STEP 2
+*FREQUENCY, EIGENSOLVER=LANCZOS, SIM, DAMPING PROJECTION=OFF
+     100,                       0.,                    1000.
+*OUTPUT, FIELD
+*NODE OUTPUT
+U,
+*ELEMENT OUTPUT
+ELSE,
+*END STEP
+**ANSA_COLOR;1;SHELL_SECTION;.835294127464294;.313725501298904;.501960813999176;1
+**.;
+**ANSA_COLOR;3;SHELL_SECTION;.745098054409027;.729411780834198;.733333349227905;1
+**.;
+**ANSA_COLOR;4;BEAM_SECTION;.513725519180298;.854901969432831;.152941182255745;1.
+**;
+**ANSA_COLOR;1;MATERIAL;.764705896377563;.811764717102051;0.52549022436142;1.;
+**ANSA_COLOR;2;MATERIAL;.564705908298492;.674509823322296;0.87058824300766;1.;
+**ANSA_COLOR;1;STEP;.882352948188782;.360784322023392;.839215695858002;1.;
+**ANSA_COLOR;2;STEP;.894117653369904;.945098042488098;.572549045085907;1.;
+**ANSA_NAME_COMMENT;2;BEAM;beam01;;NO;NO;NO;
+**ANSA_NAME_COMMENT;1;GRID DISTRIBUTION;Length(5)_distor.dist(20%)_angle(0);;NO;N
+**O;NO;
+**ANSA_NAME_COMMENT;5;GRID DISTRIBUTION;Length(1)_distor.dist(20%)_angle(0);;NO;N
+**O;NO;
+**ANSA_NAME_COMMENT;8;GRID DISTRIBUTION;Length(10)_distor.dist(20%)_angle(0);;NO;
+**NO;NO;
+**ANSA_NAME_COMMENT;1;WPLANE;X-Y default plane;;NO;YES;NO;
+**ANSA_NAME_COMMENT;2;WPLANE;Y-Z default plane;;NO;YES;NO;
+**ANSA_NAME_COMMENT;3;WPLANE;Z-X default plane;;NO;YES;NO;
+**ANSA_PART;PART;ID;2;NAME;Untitled;BELONGS_HERE;YES;STUDY_VERSION;0;PID_OFFSET;0
+**;COLOR;213;80;128;0;IS_COLOR_ACTIVE;1;CONTAINS;BEAM_SECTION;4;MASS;1;

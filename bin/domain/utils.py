@@ -8,6 +8,8 @@ import sys
 import ConfigParser
 import numpy as np
 import subprocess
+import getpass
+import socket
 
 #==============================================================================
 
@@ -39,13 +41,55 @@ def getVersionInfo():
 
 #==============================================================================
 
-def runSubprocess(command, cwd=None):
+def runSubprocess(command, returnOutput=True, cwd=None):
     
-    process = subprocess.Popen(
-        command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-        cwd=cwd)
+    process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE, cwd=cwd)
     
-    return process.communicate()
+    if returnOutput:
+        return process.communicate()
+    
+#===============================================================================
+
+def registerClass(cls):
+    
+    if type(cls.container) is dict:
+        cls.container[cls.NAME] = cls
+    elif type(cls.container) is list:
+        
+        if hasattr(cls, 'ID'):
+            if cls.ID > len(cls.container):
+                cls.container.extend((cls.ID - len(cls.container) + 1)*[None])
+            cls.container[cls.ID] = cls
+        else:
+            cls.container.append(cls)
+            
+    return cls
 
 #==============================================================================
+
+def getUserInfo():
     
+    userName = getpass.getuser()
+    machine = socket.gethostname()
+    
+    if 'GE_MAIL' in os.environ:
+        email = os.environ['GE_MAIL']
+    else:
+        email = ''
+    
+    return userName, machine, email
+
+#==============================================================================
+
+class ConsoleColors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+#==============================================================================
