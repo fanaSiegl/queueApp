@@ -23,8 +23,8 @@ Description
 
 #=========================== to be modified ===================================
 
-APPLICATION_NAME = 'project_name'
-DOCUMENTATON_GROUP = 'tool documentation group'
+APPLICATION_NAME = 'qabaPy'
+DOCUMENTATON_GROUP = 'development tools'
 DOCUMENTATON_DESCRIPTION = 'Python application one line description.'
 
 #==============================================================================
@@ -32,6 +32,7 @@ DOCUMENTATON_DESCRIPTION = 'Python application one line description.'
 import os
 import sys
 import traceback
+import argparse
 
 from domain import utils
 from domain import base_items as bi
@@ -93,7 +94,22 @@ class Qaba(object):
 #==============================================================================
 
 def main():
-        
+    
+#     parser = argparse.ArgumentParser(description=__doc__[:__doc__.find('Usage')],
+#     formatter_class=argparse.RawDescriptionHelpFormatter)
+#     parser.add_argument('projectName', help='Project name.')
+#     parser.add_argument('path', nargs='?', metavar='project_path', #type=int, default=1,
+#         help='New project location. (Default=Current directory)')
+#     parser.add_argument('-wrap', nargs=1, metavar='script_path',
+#         dest='scriptPath',
+#         help='Automatically wraps given executable script with a newPyProject of a given name. \
+#         This project can be directly installed using pyProjectInstaller.')
+#     parser.add_argument('-ansaCheck', action='store_true',
+#         help='Creates an ANSA check template. Please be aware that in order to use \
+#         pyProjectInstaller the new created check file name must contain a prefix: check_*.py')
+# 
+#     args = parser.parse_args()
+#     projectName = args.projectName
     
     try:
         qaba = Qaba(sys.argv)
