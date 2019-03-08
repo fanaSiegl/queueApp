@@ -1,0 +1,3 @@
+*Step, name=Step-1, nlgeom=NO, perturbation
+*Frequency, eigensolver=AMS, normalization=mass, acoustic coupling=projection
+20, , 1000., , , ,   

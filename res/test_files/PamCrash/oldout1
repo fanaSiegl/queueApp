@@ -1,0 +1,66 @@
+___
+# 1 license servers declared: 
+Server:  dsls1:4085>dsls2:4085>dsls3:4085
+  Name                : dsls1,dsls2,dsls3
+  Port                : 4085,4085,4085
+  Status              : Running
+  Type                : Failover
+  Version             : 6.421.0
+  OS Names            : Linux
+                      : Linux
+                      : Linux
+  OS Versions         : 2.6.32-504.el6.x86_64
+                      : 2.6.32-504.el6.x86_64
+                      : 2.6.32-642.el6.x86_64
+  OS Archs            : amd64
+                      : amd64
+                      : amd64
+  Computer Ids        : EVR-5273143A35CC9599
+                      : GHL-51B1173A35C40F62
+                      : MCV-52F8113A35CDD9DC
+
+
+Licenses:
++ Feature                   | Version | Model           | Type  | Number    | InUse   | Expires              | Server Name          | Customer ID
++ ------------------------- | ------- | --------------- | ----- | --------- | ------- | -------------------- | -------------------- | ----------- 
+| IGE                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| IGF                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QAQ                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QAS                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QCF                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QCL                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QDC                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QDN                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QDP                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QDS                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QDT                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QEL                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QEX                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QFT                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QIA                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QIF                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QIN                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QIQ                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QIS                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QMS                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QPF                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QPL                       | 25      | ConcurrentUser  | STD   |     32768 |       1 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+    kadlec on mb-so2.cax.lan (52861565F3417C66-ac15001c.0), granted on 08-Mar-2019 12:24:58
+| QPU                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QS3                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSA                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSD                       | 25      | Token           | STD   |       210 |     135 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+    kadlec on mb-so2.cax.lan (52861565F3417C66-ac15001c.0), granted on 08-Mar-2019 12:24:58 using 135 licenses
+| QSE                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSH                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSL                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSM                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSN                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSO                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSP                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QST                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QSZ                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QXF                       | 25      | Token           | STD   |       210 |       0 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+| QXT                       | 25      | Token           | STD   |       210 |     135 | 02-Feb-2020 00:59:00 | dsls1,dsls2,dsls3    | 100000000001501 
+    kadlec on mb-so2.cax.lan (52861565F3417C66-ac15001c.0), granted on 08-Mar-2019 12:24:58 using 135 licenses
+_

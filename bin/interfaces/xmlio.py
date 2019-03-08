@@ -9,6 +9,7 @@ import sys
 import pickle
 
 import xml.etree.ElementTree as ETree
+import xml.dom.minidom
 
 from domain import utils
 # from presentation import models
@@ -48,6 +49,33 @@ class GridEngineInterface(object):
                     hosts[hostName]['jobs'][jobId][jobAttributeName] = jobValueElement.text
             
         return hosts
+    
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def getQueueStat():
+        
+        stdout, _ = utils.runSubprocess('qstat -u \* -xml -r')        
+        
+        rootElement = ETree.fromstring(stdout)
+        
+        jobElements = list()
+        for elem in rootElement.iter():
+            if elem.tag == 'job_list':
+                jobElements.append(elem)
+        
+        jobs = list()
+        for jobElement in jobElements:
+#             jobState = jobElement.get('state')
+#             if jobState not in jobs:
+#                 jobs[jobState] = list()            
+            elemAttributes = dict()
+            for attributeElement in jobElement.getchildren():
+                elemAttributes[attributeElement.tag] = attributeElement.text 
+#             jobs[jobState].append(elemAttributes)
+            jobs.append(elemAttributes)
+        
+        return jobs
+        
         
 #=============================================================================
 
@@ -127,7 +155,8 @@ class GridEngineInterface(object):
         
         
         
-        
+#==============================================================================
+
         
         
         

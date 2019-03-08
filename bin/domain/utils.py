@@ -58,7 +58,7 @@ def registerClass(cls):
     elif type(cls.container) is list:
         
         if hasattr(cls, 'ID'):
-            if cls.ID > len(cls.container):
+            if cls.ID >= len(cls.container):
                 cls.container.extend((cls.ID - len(cls.container) + 1)*[None])
             cls.container[cls.ID] = cls
         else:

@@ -8,19 +8,22 @@ import sys
 import time
 import copy
 
-import base_items as bi
 import utils
+import base_items as bi
+import enum_items as ei
 from persistent import file_items as fi
 
 #==============================================================================
 
-EXECUTION_PROFILE_TYPES = list()
+ABAQUS_EXECUTION_PROFILE_TYPES = list()
+PAMCRASH_EXECUTION_PROFILE_TYPES = list()
 
 #==============================================================================
 
 class AbaqusJob(object):
     
     DFT_PRIORITY = 50
+    EXECUTABLE_FILE_TYPE = fi.AbaqusJobExecutableFile
     
     def __init__(self):
         
@@ -32,18 +35,25 @@ class AbaqusJob(object):
         self.priority = self.DFT_PRIORITY
         self.solverVersion = ''
         
+        self.restartInpFile = None
         self.executableFile = None
 
 #TODO: check this!
         # for datacheck case
-        self.fixTokenNumber = False
+        self.fixTokenNumber = None
     
     #--------------------------------------------------------------------------
     
     def setInpFile(self, inpFileName):
         
         self.inpFile = fi.AbaqusInpFile(inpFileName)
-            
+    
+    #--------------------------------------------------------------------------
+    
+    def setRestartInpFile(self, inpFileName):
+        
+        self.restartInpFile = fi.AbaqusInpFile(inpFileName)
+                
     #--------------------------------------------------------------------------
     
     def setDescription(self, text):
@@ -97,7 +107,7 @@ class AbaqusJob(object):
     
     def getTokensRequired(self):
         
-        if self.fixTokenNumber:
+        if self.fixTokenNumber is not None:
             return self.fixTokenNumber
         
         tokensRequired = 0
@@ -128,7 +138,31 @@ class AbaqusJob(object):
         
         return copy.deepcopy(self)
     
+
+#==============================================================================
+
+class PamCrashJob(AbaqusJob):
+      
+    EXECUTABLE_FILE_TYPE = fi.PamCrashJobExecutableFile
     
+    def setInpFile(self, inpFileName):
+        
+        self.inpFile = fi.PamCrashInpFile(inpFileName)
+        
+    #--------------------------------------------------------------------------
+    
+    def getTokensRequired(self):
+        
+        if self.fixTokenNumber is not None:
+            return self.fixTokenNumber
+        
+        tokensRequired = 0
+        
+        # obtain number of tokens according to number of cores
+        tokensRequired += bi.PamcrashLicenseType.getNoOfTokens(self.numberOfCores)
+        
+        return tokensRequired
+       
 #==============================================================================
 
 class JobExecutionSetting(object):
@@ -172,7 +206,7 @@ class JobExecutionSetting(object):
 
 class BaseExecutionProfileType(object):
 
-    container = EXECUTION_PROFILE_TYPES
+    container = ABAQUS_EXECUTION_PROFILE_TYPES
 
     def __init__(self, parentApplication):
         
@@ -212,6 +246,16 @@ class BaseExecutionProfileType(object):
         
         print '\tSelected file(s): %s' % ', '.join([
             os.path.basename(inpFileName) for inpFileName in self.inpFileNames])
+        
+        # in case of restart read
+        if self.job.inpFile.subAllFiles:
+            inpSelector = bi.RestartInputFileSelector(
+                self.parentApplication, self.parentApplication.workDir)
+            restartInpFileName = inpSelector.getSelection()
+            
+            self.job.setRestartInpFile(restartInpFileName)
+            
+            print '\tSelected restart file: %s' % restartInpFileName
             
     #--------------------------------------------------------------------------
     
@@ -311,10 +355,10 @@ class BaseExecutionProfileType(object):
     
     def _setAdditionalSolverParams(self):
         
-        bi.BaseDataSelector.printSelectionTitle('Additional ABAQUS parameters')
+        bi.BaseDataSelector.printSelectionTitle('Additional parameters for solver')
         
         params = bi.BaseDataSelector.getTextInput(
-            'Specify more ABAQUS job parameters [15 characters, enter=none]: ', '')
+            'Specify more job parameters [15 characters, enter=none]: ', '')
         
         self.jobSettings.setAdditionalSolverParams(params)
         
@@ -394,7 +438,7 @@ class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
     def _getPreferredNumberOfCpus(self):
         
         status = self.jobSettings.licenseServer.getTokenStatus()
-        defaultNoOfCores = bi.DslsLicenseType.getNoOfCpus(int(status['free']))
+        defaultNoOfCores = self.jobSettings.licenseServer.getNoOfCpus(int(status['free']))
         
         return defaultNoOfCores
     
@@ -473,23 +517,158 @@ class ResourcePriorityExecutionProfileType(BaseExecutionProfileType):
 
 #==============================================================================
 
-class ExecutionProfileSelector(bi.BaseDataSelector):
+class AbaqusExecutionProfileSelector(bi.BaseDataSelector):
     
     DFT_OPTION_INDEX = 1
+    profiles = ABAQUS_EXECUTION_PROFILE_TYPES
     
     #--------------------------------------------------------------------------
 
     def getSelection(self):
         
-        options = [profileType.NAME for profileType in EXECUTION_PROFILE_TYPES]
+        options = [profileType.NAME for profileType in self.profiles]
         
         index = self._getOptionFromList(
             'Select execution profile',
             'Enter execution profile number [enter=%s]: ' % self.DFT_OPTION_INDEX,
             options)
             
-        return EXECUTION_PROFILE_TYPES[index]
-    
-    
+        return self.profiles[index]
         
+#==============================================================================
+@utils.registerClass
+class PamCrashExecutionProfileType(BaseExecutionProfileType):
+    
+    container = PAMCRASH_EXECUTION_PROFILE_TYPES
+    
+    NAME = 'PamCrash analysis'
+    ID = 0
+        
+    def __init__(self, parentApplication):
+        
+        self.parentApplication = parentApplication
+        self.job = PamCrashJob()
+        self.jobSettings = JobExecutionSetting()
+        self.user = bi.User()
+        
+        self.inpFileNames = list()
+        
+    #--------------------------------------------------------------------------
+
+    def _setInputFile(self):
+        
+        inpSelector = bi.PamcrashInputFileSelector(
+            self.parentApplication, self.parentApplication.workDir)
+        self.inpFileNames = inpSelector.getSelection()
+        
+        self.job.setInpFile(self.inpFileNames[0])
+        
+        print '\tSelected file(s): %s' % ', '.join([
+            os.path.basename(inpFileName) for inpFileName in self.inpFileNames])
+        
+    #--------------------------------------------------------------------------
+
+    def _setLicenseServer(self):
+        
+        bi.BaseDataSelector.printSelectionTitle('Available license servers')
+        
+        licenseServer = bi.PamCrashLicenseServerType
+        status = licenseServer.getTokenStatus()
+        
+        print '%s %s license (free tokens: %s/%s)' % (
+                licenseServer.LICENSE_TYPE.NAME, licenseServer.NAME, status['free'], status['total'])
+        
+        self.jobSettings.setLicenseServer(licenseServer)
+
+    #--------------------------------------------------------------------------
+    
+    def _setSolverVersion(self):
+        
+        solverVersion = ei.PAMCRASH_SOLVER_LIST[0]
+        
+        self.job.setSolverVersion(solverVersion)
+        
+    #--------------------------------------------------------------------------
+    
+    def _setExecutionServer(self):
+        
+        hostSelector = bi.PamCrashExecutionServerSelector(self.parentApplication)
+        executionServer = hostSelector.getSelection()
+        
+        self.jobSettings.setExecutionServer(executionServer)        
+               
+    #--------------------------------------------------------------------------
+    
+    def _setNumberOfGPUCores(self):        
+        
+        # skip an option to chose GPU for explicit calculation
+        if self.job.inpFile.analysisType == ei.AnalysisTypes.EXPLICIT:
+            self.job.setNumberOfGPUCores(0)
+            print "\tGPGPU acceleration is NOT AVAILABLE"
+            return
+        elif self.jobSettings.executionServer.NO_OF_GPU == 0:
+            print "\tGPGPU acceleration is NOT AVAILABLE"
+            return
+        
+        numberOfGPUCores = bi.BaseDataSelector.getIntInput('Choose the number of GPU', 
+            'Enter number of NVIDIA GPU acceleration [max %s, enter=%s]: ' % (
+                self.jobSettings.executionServer.NO_OF_GPU, 0),
+            dftValue=0,
+            maxValue=self.jobSettings.executionServer.NO_OF_GPU)
+        
+        self.job.setNumberOfGPUCores(numberOfGPUCores)
+        
+#==============================================================================
+@utils.registerClass
+class PamCrashDataCheckExecutionProfileType(PamCrashExecutionProfileType):
+        
+    NAME = 'Datacheck'
+    ID = 1
+
+    DATACHECK_CPU_NO = 1
+    DATACHECK_TOKEN_NO = 0
+        
+    #--------------------------------------------------------------------------
+
+    def _setLicenseServer(self):
+        
+        self.job.setNumberOfCores(self.DATACHECK_CPU_NO)
+        self.job.fixTokenNumber = self.DATACHECK_TOKEN_NO
+        
+        licenseServer = bi.PamCrashLicenseServerType    
+        self.jobSettings.setLicenseServer(licenseServer)
+        
+    #--------------------------------------------------------------------------
+
+    def _setAdditionalSolverParams(self): pass
+    
+    #--------------------------------------------------------------------------
+
+    def _setJobDescription(self):
+        
+        self.job.setDescription('datacheck')
+    
+    #--------------------------------------------------------------------------
+        
+    def _setJobStartTime(self): pass
+    
+    #--------------------------------------------------------------------------
+    
+    def _setNumberOfCores(self): pass
+    
+    #--------------------------------------------------------------------------
+
+    def _setNumberOfGPUCores(self): pass
+    
+    #--------------------------------------------------------------------------
+    
+    def _setJobPriority(self): pass
+
+
+#==============================================================================
+
+class PamCrashExecutionProfileSelector(AbaqusExecutionProfileSelector):
+    
+    DFT_OPTION_INDEX = 1
+    profiles = PAMCRASH_EXECUTION_PROFILE_TYPES
     

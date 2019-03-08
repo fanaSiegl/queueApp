@@ -1,0 +1,7 @@
+*Step, name=Step-1
+*Dynamic, Explicit
+, 1.8E-5
+....
+*Step, name=Step-2, nlgeom=NO, perturbation
+*Frequency, eigensolver=AMS, normalization=mass, acoustic coupling=projection
+20, , 1000., , , ,  

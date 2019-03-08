@@ -7,14 +7,20 @@ import os
 import sys
 from string import Template
 
+from domain import enum_items as ei
+
 #==============================================================================
 
 class AbaqusInpFileException(Exception): pass
 
 #==============================================================================
 
+class PamCrashInpFileException(Exception): pass
+
+#==============================================================================
+
 class AbaqusInpFile(object):
-    
+        
     def __init__(self, inpFileName):
 
         self.fileName = inpFileName
@@ -26,9 +32,10 @@ class AbaqusInpFile(object):
         
         self.stepPerturbation = False
         self.dynamicsExplicit = False
+        self.eigSolver = None
         self.subAllFiles = False
         self.retAllFiles = False
-        
+                
         self._analyseContent()
         self._checkIncludedFiles(self.includeFiles)
         self._checkIncludedFiles(self.fillFiles)
@@ -40,17 +47,20 @@ class AbaqusInpFile(object):
         fi = open(self.fileName, 'rt')
         
         for line in fi.readlines():
+            # line with commands is non-case sensitive except parameters
+            rawLine = line
+            line = line.upper()
             if line.startswith('*INCLUDE'):
-                parts = line.split()
+                parts = rawLine.split()
                 includePart = parts[-1].strip()
                 includeFile = includePart.split('=')[-1]
                 
                 self.includeFiles.append(includeFile)            
             elif line.startswith('*STEP'):
-                if '*PERTURBATION' in line:
+                if 'PERTURBATION' in line:
                     self.stepPerturbation = True
             elif line.startswith('*DYNAMIC'):
-                if '*EXPLICIT' in line:
+                if 'EXPLICIT' in line:
                     self.dynamicsExplicit = True
             elif line.startswith('*RESTART'):
                 if 'READ' in line:
@@ -58,11 +68,16 @@ class AbaqusInpFile(object):
                 elif 'WRITE' in line:
                     self.retAllFiles = True
             elif 'FILE=' in line and '.fil' in line:
-                parts = line.split()
+                parts = rawLine.split()
                 fillPart = parts[-1].strip()
-                fillFile = fillPart.split('=')[-1]
-                
-                self.fillFiles.append(fillFile) 
+                fillFile = fillPart.split('=')[-1]               
+                self.fillFiles.append(fillFile)
+            elif '*FREQUENCY' in line:
+                parts = line.split(',')
+                for part in parts:
+                    if 'EIGENSOLVER' in part:
+                        params = part.split('=')
+                        self.eigSolver = params[-1].strip()
             
         fi.close()
 
@@ -85,6 +100,72 @@ class AbaqusInpFile(object):
 
 #==============================================================================
 
+class PamCrashInpFile(AbaqusInpFile):
+        
+    def __init__(self, pcFileName):
+
+        self.fileName = pcFileName
+        self.baseName = os.path.splitext(os.path.basename(pcFileName))[0]
+        self.dirName = os.path.dirname(pcFileName)
+        
+        self.includeFiles = list()
+        self.analysisType = None
+                
+        self._analyseContent()
+        self._checkIncludedFiles(self.includeFiles)
+        
+    #-------------------------------------------------------------------------
+    
+    def _analyseContent(self):
+        
+        fi = open(self.fileName, 'rt')
+        
+        for line in fi.readlines():
+            # line with commands is non-case sensitive except parameters
+            rawLine = line
+            line = line.upper()
+            if line.startswith('INCLU'):
+                parts = rawLine.split()
+                includePart = parts[-1].strip()
+                includeFileParts = includePart.split('/')[1:]
+                includeFile = '/'.join(includeFileParts) 
+                
+                self.includeFiles.append(includeFile)
+            elif line.startswith('ANALYSIS'):
+                parts = line.split()
+                try:
+                    self.analysisType = ei.AnalysisTypes.PAMCRASH[parts[1].strip()]
+                except Exception as e:
+                    raise PamCrashInpFileException(
+                         'Unknown analysis type: %s' % line)
+                  
+#             elif line.startswith('*STEP'):
+#                 if 'PERTURBATION' in line:
+#                     self.stepPerturbation = True
+#             elif line.startswith('*DYNAMIC'):
+#                 if 'EXPLICIT' in line:
+#                     self.dynamicsExplicit = True
+#             elif line.startswith('*RESTART'):
+#                 if 'READ' in line:
+#                     self.subAllFiles = True
+#                 elif 'WRITE' in line:
+#                     self.retAllFiles = True
+#             elif 'FILE=' in line and '.fil' in line:
+#                 parts = rawLine.split()
+#                 fillPart = parts[-1].strip()
+#                 fillFile = fillPart.split('=')[-1]               
+#                 self.fillFiles.append(fillFile)
+#             elif '*FREQUENCY' in line:
+#                 parts = line.split(',')
+#                 for part in parts:
+#                     if 'EIGENSOLVER' in part:
+#                         params = part.split('=')
+#                         self.eigSolver = params[-1].strip()
+            
+        fi.close()
+                
+#==============================================================================
+
 class AbaqusEnvConfigFile(object):    
     
     def __init__(self, parentJob):
@@ -94,6 +175,8 @@ class AbaqusEnvConfigFile(object):
 #==============================================================================
 
 class AbaqusJobExecutableFile(object):
+    
+    SOLVER_NAME = 'ABAQUS'
     
     def __init__(self, parentApplication, parentJob):
         
@@ -112,9 +195,9 @@ class AbaqusJobExecutableFile(object):
         
         content = self._getDescriptionContent()
         
-        content += 'echo "Startuji Abaqus"\n'
+        content += 'echo "Starting %s"\n' % self.SOLVER_NAME
         content += self._getRunCommand()
-        content += 'echo "Koncim Abaqus"\n'
+        content += 'echo "%s finished"\n' % self.SOLVER_NAME
         content += self._getMetaDbExportContent()
         
         return content
@@ -155,7 +238,11 @@ class AbaqusJobExecutableFile(object):
                 else:
                     runCommand += ' cpus=%s' % self.parentJob.numberOfCores
         
-        runCommand += self.jobSettings.additionalSolverParams
+        # add restart file
+        if self.parentJob.restartInpFile is not None:
+            runCommand += ' oldjob=%s' % self.parentJob.restartInpFile.baseName
+        
+        runCommand += ' %s' % self.jobSettings.additionalSolverParams
         
         return '%s\n' % runCommand
     
@@ -220,4 +307,69 @@ fi
         return template.safe_substitute(
             {'jobname' : self.parentJob.inpFile.baseName})
 
+#==============================================================================
+
+class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
+    
+    SOLVER_NAME = 'PAMCRASH'
+    
+    #-------------------------------------------------------------------------
+    
+    def _getRunCommand(self):
+        
+        
+        runCommand = ''
+        runCommand += 'export PAM_LMD_LICENSE_FILE=7789@mb-dc1\n'
+        runCommand += 'export PAMHOME=%s\n' % self.parentJob.solverVersion
+        
+        runCommand += '%s2015.03/pamworld -np %s -lic CRASHSAF %s > %s.log' % (
+            self.parentJob.solverVersion, self.parentJob.numberOfCores,
+            self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)
+        
+        if self.parentJob.inpFile.analysisType == ei.AnalysisTypes.IMPLICIT:
+            runCommand += ' -fp 2'
+        
+        runCommand += ' %s' % self.jobSettings.additionalSolverParams
+        
+        return '%s\n' % runCommand
+
+    #-------------------------------------------------------------------------
+    
+    def _getDescriptionContent(self):
+        
+        content = '#!/bin/bash\n'
+        content += '#$ -hard -l %s\n' % self._getJobFeatures()
+        content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
+        content += '#$ -soft -q %s\n' % self.jobSettings.executionServer.fullName
+        content += '#$ -cwd -V\n'
+        content += '#$ -j y\n'
+        content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
+        content += '#$ -p %s\n' % self.parentJob.priority
+#         content += '#$ -v ver_solver=%s\n' % self.parentJob.solverVersion
+#         content += '#$ -v sub_allfiles=%s\n' % int(self.parentJob.inpFile.subAllFiles)
+#         content += '#$ -v ret_allfiles=%s\n' % int(self.parentJob.inpFile.retAllFiles)
+#         content += '#$ -ac verze=%s\n' % self.parentJob.solverVersion
+        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
+        content += '#$ -a %s\n' % self.parentJob.startTime
+        if len(self.user.email) > 0:
+            content += '#$ -M %s\n' % self.user.email
+            content += '#$ -m bes\n'
+        
+        content += 'umask 0002\n'
+        
+        content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
+            self.jobSettings.SCRATCH_PATH, self.user.name)
+        content += 'cd $scratch_dir\n'
+        
+        return content
+    
+    #--------------------------------------------------------------------------
+    
+    def _getJobFeatures(self):
+        
+        features = '%s=%s' % (self.jobSettings.licenseServer.CODE,
+                self.parentJob.getTokensRequired())
+        
+        return features
+    
 #==============================================================================

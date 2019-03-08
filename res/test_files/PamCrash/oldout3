@@ -1,0 +1,73 @@
+___
+# 1 license servers declared: 
+Server:  mb-so2:4085
+  Name                : mb-so2
+  Port                : 4085
+  Status              : Running
+  Type                : Standalone
+  Version             : 6.421.0
+  OS Name             : Linux
+  OS Version          : 3.10.0-514.6.1.el7.x86_64
+  OS Arch             : amd64
+  Computer Id         : ZJJ-52861565F3417C66
+
+
+Licenses:
++ Feature                   | Version | Model           | Type  | Number    | InUse   | Expires              | Server Name          | Customer ID
++ ------------------------- | ------- | --------------- | ----- | --------- | ------- | -------------------- | -------------------- | ----------- 
+| IGD                       | 25      | ConcurrentUser  | STD   |         3 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| IGE                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| IGF                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| IGR                       | 25      | ConcurrentUser  | STD   |         3 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| Q6I                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QAE                       | 25      | Token           | STD   |         3 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QAQ                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QAS                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QAX                       | 25      | Token           | STD   |         3 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QCA                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QCD                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QCF                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QCL                       | 25      | ConcurrentUser  | STD   |         2 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QDC                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QDN                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QDP                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QDS                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QDT                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QEL                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QEX                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QF8                       | 21      | Token           | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QF9                       | 25      | Token           | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QFT                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QFX                       | 25      | Token           | STD   |         3 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QGA                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QGD                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QIA                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QIF                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QIN                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QIQ                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QIS                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QMI                       | 25      | Token           | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QMS                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QPF                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QPL                       | 25      | ConcurrentUser  | STD   |     16384 |       1 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+    kadlec on mb-so1.cax.lan (53C911E7D123FFE8-ac15001b.0), granted on 08-Mar-2019 12:23:44
+| QPU                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QS3                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSA                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSD                       | 25      | Token           | STD   |       150 |     135 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+    kadlec on mb-so1.cax.lan (53C911E7D123FFE8-ac15001b.0), granted on 08-Mar-2019 12:23:43 using 135 licenses
+| QSE                       | 25      | ConcurrentUser  | STD   |         1 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSH                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSL                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSM                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSN                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
++ Feature                   | Version | Model           | Type  | Number    | InUse   | Expires              | Server Name          | Customer ID
++ ------------------------- | ------- | --------------- | ----- | --------- | ------- | -------------------- | -------------------- | ----------- 
+| QSO                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSP                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QST                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QSZ                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QXF                       | 25      | Token           | STD   |       150 |       0 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+| QXT                       | 25      | Token           | STD   |       150 |     135 | 01-Jun-2020 01:59:00 | mb-so2               | 100000000001501 
+    kadlec on mb-so1.cax.lan (53C911E7D123FFE8-ac15001b.0), granted on 08-Mar-2019 12:23:44 using 135 licenses
+_

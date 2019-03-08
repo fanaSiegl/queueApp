@@ -1,0 +1,424 @@
+#ANSA_GENERAL_COMMENT;~
+#$ Project:     SK3165EUB~
+#$ Description: Back Pendel test~
+#$ Responsible: Miroslav Soukup, miroslav.soukup@skoda-auto.cz, Skoda TK/4~
+#$~
+#$ Modification history:~
+#$~
+#n SK3165EUB_xIU_template_104_001_2015~
+#i   Base template for rear ECE R-42~
+#d   06.04.2018~
+#a   Jiri Machacek, Altran CZ~
+#c     - Base template for rear ECE R-42~
+#c     - RUNEND TIME set to 200ms~
+#c     - for global contact 36 and 46 set initial penetration removal to 2~
+#r     - base template for ECE R-42~
+#n SK3165EUB_xIU_template_103_002_2015~
+#i   Base template for rear ECE R-42~
+#d   09.10.2018~
+#a   Lukas Kadlec CZ~
+#c     - Material Includes added~
+#r     - base template for ECE R-42~
+#n SK3165EUB_xIU_template_103_003_2015~
+#i   Base template for rear ECE R-42~
+#d   5.12.2018~
+#a   Lukas Kadlec CZ~
+#c     - Set for DEFO global mounting added~
+#r     - base template for ECE R-42~
+###############################################################################~
+#;
+#
+#
+#
+INPUTVERSION 2015
+SOLVER CRASH
+ANALYSIS EXPLICIT
+AUTOSLEEP YES
+$
+STOPRUN ENERGY 10
+$PROFILE_DMP 2
+$
+DATACHECK YES
+$SHELLCHECK  YES  15.7   5.0  30.0 150.0  20.0 100.0
+SHELLCHECK NO
+$SOLIDCHECK  YES   5.0  30.0 150.0  20.0 100.0  30.0  10.0
+SOLIDCHECK NO
+AIRBAGCHECK YES
+METRICCHECK YES
+$
+RESTARTFILES -1
+MERGEGAP 0.01
+UNIT MM KG MS KELVIN
+$
+TITLE /  SuBsTiTu
+$
+RUNEND/
+ TIME 100.01
+END_RUNEND
+$
+OCTRL /
+ OUTPUT_FILE_FORMAT    DSYTHP
+ TIME_HISTORY INTERVAL      0.05
+ CONTOUR_PLOT INTERVAL       1.0
+ PRTOUTPUT CYCLE           100
+ PRINT YES MASS LINK PYVA
+ PREFILTER TYPE0 ALL
+ GLBTHP ALL
+$ SHLTHP DMG EPMX EPSI ESMA SIGM STRA
+ SHLTHP DFLT EPSI
+$ SOLTHP      ALL
+$ BEATHP      ALL
+$ NODPLOT CRUP FACM 
+ NODPLOT DFLT PCNT
+$ SOLPLOT EPLE IMSC NSMS STSC
+ SOLPLOT DFLT DINT
+$ SHLPLOT EPMX  ESMA DMG GRUC IMSC MSTM NSMS STSC
+ SHLPLOT EPMX ESMA DINT VAUX
+$ SHLPLOT EPSI
+$ BEAPLOT FAXI FSSH RTN1 MTN1 MSN1 FTSH DAXI
+ BEAPLOT ALL
+$ FPMPLOT ALL
+$ SPHPLOT DFLT
+ MPPOUTPUT WRITE REMOVE
+END_OCTRL
+$
+TCTRL /
+ PREFER            0.50e-3
+ INIT_MASS_SCALE   0.50e-3
+ DYNA_MASS_SCALE   0.50e-3  20.0
+ STIFFNESS_SCALE   0.50e-3   0.3
+ NODAL YES
+ SHELL_TIMESTEP SMALL NOBEND NU
+END_TCTRL
+$
+$SPCTRL/
+$ KERNEL 0
+$ TIMESTEP_SCHEME DST
+$END_SPCTRL
+$
+ECTRL / 
+ NUMERICAL_DAMPING YES
+ METRIC_3D_LOAD 1000 0.01
+ RATEFILTER_TIME  0.05
+ RATECURVE  LINEAR
+ STRAINRATE YES
+ ANTIDRILL  PROJECTION_RBODY
+END_ECTRL
+$
+MCTRL /
+ INDPT_METRIC_FILE_READING YES
+END_MCTRL
+$
+$FPCTRL/
+$ FLUID_MODEL 0
+$ VENT_MODEL 1
+$END_FPCTRL
+$
+$CCTRL / 
+$ LEAKFILTER_TIME     1.0
+$END_CCTRL
+$
+$
+$
+$###############################################################################
+$             ID    NPTS  SCALEX  SCALEY  SHIFTX  SHIFTY
+FUNCT /     1111       0      1.     1.0     0.0     0.0
+NAME DSY output interval
+$ Units:  Time / Acceleration
+$                              X               Y
+                               0               5
+                              19               5
+                              20               1
+                             120               1
+                             121               5
+                            1000               5
+                END
+$
+$
+$###############################################################################
+$
+$ INCLU section
+$
+$###############################################################################
+$
+INCLU /  SuBsTiTu
+INCLU /  ./SKxxx_xIU_impactor_103_2008.inc
+INCLU /  SuBsTiTu
+INCLU /  SuBsTiTu
+INCLU /  SKxxx_xIP_composite_mat_005.inc
+INCLU /  SKxxx_xIP_mat_008_2008.inc
+$
+$###############################################################################
+$
+$ GROUP section
+$
+$###############################################################################
+$
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+MASS  / 91999997
+NAME Car_weight_add
+              <CAR_MASS>      <CAR_MASS>      <CAR_MASS>
+                     0.1             0.1             0.1
+$
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+FUNCT /  1999995       0      1.  -0.001      0.      0.
+NAME Rolling_Resistance
+                         -10000.   <ROLL_RESIST>
+                            -0.5   <ROLL_RESIST>
+                              0.              0.
+                          10000.              0.
+                END
+$###############################################################################
+$
+$ GROUP section
+$
+$###############################################################################
+$
+$
+$###############################################################################
+$
+$ CNTAC section
+$
+$###############################################################################
+$
+$1         IDCTC   NTYPE
+$2    NAME
+$3    T1SL      T2SL     ISENS     HCONT NACC          BLANK     IEDGE
+$4       SLFACM     FSVNLIKFOR    PENKIN
+$5   FRICT    IDFRIC     XDMP1
+$6EMOIERODILEAKIAC32             IFREEED   DTHKPLK
+$7   BLANK    SEPSTR    SEPTIUPAREA
+$
+$---+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8
+$ global self contact
+CNTAC /     3601      36
+NAME self_contact
+        0.        0.         0     -0.10                             0
+            0.1        0.    0        0.
+       0.1         0       0.1
+    2         0    1
+
+
+        GRP 'CAR_CNTAC_36_self_contact'
+$
+        GRP 'RDE_CNTAC_36_self_contact'
+        GRP 'RBU_CNTAC_36_self_contact'
+$        GRP 'FDO_CNTAC_36_self_contact'
+$        GRP 'TAN_CNTAC_36_self_contact'
+        END
+$
+$---+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8
+$ global edge contact
+CNTAC /     4601      46
+NAME edge_contact
+        0.        0.                0.10
+            0.1        0.
+                           0.1
+              2
+
+
+        GRP 'CAR_CNTAC_36_self_contact'
+$
+        GRP 'RDE_CNTAC_36_self_contact'
+        GRP 'RBU_CNTAC_36_self_contact'
+$        GRP 'FDO_CNTAC_36_self_contact'
+$        GRP 'TAN_CNTAC_36_self_contact'
+        END
+$
+$---+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8
+$ measuring contact section
+CNTAC /   106331      33
+NAME Bumper_impactor
+        0.        0.                 0.5                             0
+            0.1        0.    0        0.
+       0.2                  0.
+    2         0    1                              
+                 0.0       0.0
+    0       0.0       0.0                              
+        GRP 'IMP_CNTAC_33S_impactor_surface'
+        END
+        GRP 'RBU_CNTAC_36_self_contact'
+$        GRP 'FDO_CNTAC_36_self_contact'
+        END
+$---+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8
+$ friction
+CNTAC /     3321      33
+NAME friction_rear_defo_bumper
+       0.0       0.0                -0.1    0    0       0.0    0
+            0.1       0.0    0       0.0
+       0.2         0       0.1
+    2         0    1
+                 0.0       0.0
+    0       0.0       0.0
+        GRP 'RDE_CNTAC_36_self_contact'
+        END
+        GRP 'RBU_CNTAC_36_self_contact'
+        END
+$---+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8
+CNTAC /     3322      33
+NAME friction_rear_defo_car
+       0.0       0.0                -0.1    0    0       0.0    0
+            0.1       0.0    0       0.0
+       0.3         0       0.1
+    2         0    1
+                 0.0       0.0
+    0       0.0       0.0
+        GRP 'RDE_CNTAC_36_self_contact'
+        END
+        GRP 'CAR_CNTAC_33M_rear_defo_car'
+        END
+$
+$
+$###############################################################################
+$
+$ INVEL section
+$
+$###############################################################################
+$
+$
+$
+$###############################################################################
+$
+$ ACFLD section
+$
+$###############################################################################
+$             ID   IFUNX   SCALX   IFUNY   SCALY   IFUNZ   SCALZ
+ACFLD /        1       0      1.       0      1.    1001      1.
+NAME gravitational_field
+$
+        NOD  1:99999999
+        END
+$
+$###############################################################################
+$
+$ FUNCT section
+$
+$###############################################################################
+$---+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8
+$             ID    NPTS  SCALEX  SCALEY  SHIFTX  SHIFTY
+FUNCT /     1001       2      1.     1.0     0.0     0.0
+NAME gravitation
+$ Units:  Time / Acceleration
+$                              X               Y
+                             0.0        -0.00981
+                           1000.        -0.00981
+$
+$###############################################################################
+$
+$ CAR
+$
+$###############################################################################
+$
+#ANSA_NAME;1999997;NODE;~
+#CAR_THNOD_1999997
+NODE  / 91999997           1110.              0.            262.
+#ANSA_NAME;1999998;NODE;~
+#CAR_THNOD_1999998
+NODE  / 91999998           1108.              0.            262.
+#ANSA_NAME;1999996;NODE;~
+#CAR_THNOD_1999996
+NODE  / 91999996           1105.              0.            262.
+#ANSA_NAME;1999995;NODE;~
+#CAR_THNOD_1999995
+NODE  / 91999995           1105.              1.            262.
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+$
+BOUNC /        0  111111       0        
+NAME MOUNTING_GLOBAL
+        NOD  91999996
+        END
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+#Rolling_Resistance_MTOJN
+MTOJNT/  1999995  250001TRANSLAT9199999691999998 3800005
+                
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+$#         IDPRT   ATYPE    IMAT  VA_MAT    TMAT  IDPMAT
+PART  /  250001   MTOJNT 7100100       0       0        
+NAME xxx_xxx_xxx__xxx__MTOJNT__xx_xx_xxx__KJOINT                                
+$#  DTELIM    TSCALF
+                    
+$#   TCONT    EPSINI  FRIC_CNT
+                              
+
+$#      
+END_PART
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+MTOCO /  199999091999998  111111       0       0
+NAME MOUNTING_GLOBAL
+#        GRP 'CAR_MTOCO_mounting_global'
+        GRP 'CAR_RBODY_mounting_global'
+        GRP 'RDE_RBODY_mounting_global'
+#        NOD         1999997        
+        END
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+MTOCO /  199999191999998  111111       0       0
+NAME MOUNTING_GLOBAL-Rolling_Resistance_MTOJN
+        NOD         91999997        
+        END
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+FRAME /  3800005       0       1
+NAME IP_front_FRAME                                                             
+        919999969199999891999995
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+MATER /  7100100     230         7.85E-9       0       0       0        
+                                                              1.        
+NAME Rolling_Resistance_MTOJN
+   1999995                                  0
+                                        
+                                            0
+                                        
+                                            0
+                                        
+                                            0
+                                        
+                                            0
+                                        
+                                            0
+
+$
+$###############################################################################
+$
+$ POSTPROC
+$
+$###############################################################################
+$
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+THNOD /        0
+NAME Car_COG
+        NOD          91999998
+        END
+#---5---10----5---20----5---30----5---40----5---50----5---60----5---70----5---80
+THELE /        0
+NAME Rolling_Resistance
+        ELE          1999995
+        END
+$
+$SECFO /     2001CONT_MS        0
+$NAME IMPACTOR_vs_BUMPER_SPOILER
+$        GRP  'RBU_SECFO_S_IMPACTOR_vs_BUMPER_SPOILER'
+$        END
+$        GRP  'IMP_CNTAC_33S_impactor_surface'
+$        END
+$
+$SECFO /     2002CONT_MS        0
+$NAME IMPACTOR_vs_BUMPER_COVER
+$        GRP  'RBU_SECFO_S_IMPACTOR_vs_BUMPER_COVER'
+$        END
+$        GRP  'IMP_CNTAC_33S_impactor_surface'
+$        END
+$
+$SECFO /     2003CONT_MS        0
+$NAME IMPACTOR_vs_ODRAZKA
+$        GRP  'RBU_SECFO_S_IMPACTOR_vs_ODRAZKA'
+$        END
+$        GRP  'IMP_CNTAC_33S_impactor_surface'
+$        END
+$
+$SECFO /     2004CONT_MS        0
+$NAME IMPACTOR_vs_FIFTH_DOOR
+$        GRP  'FDO_SECFO_S_IMPACTOR_vs_FIFTH_DOOR'
+$        END
+$        GRP  'IMP_CNTAC_33S_impactor_surface'
+$        END
+$
+#ENDDATA

@@ -12,7 +12,7 @@ import time
 import re
 
 import utils
-
+import enum_items as ei
 from interfaces import xmlio
 
 #==============================================================================
@@ -20,6 +20,8 @@ from interfaces import xmlio
 LICENSE_TYPES = dict()
 LICENSE_SERVER_TYPES = list()
 EXECUTION_SERVER_TYPES = dict()
+PAMCRASH_LICENSE_SERVER_TYPES = list()
+NASTRAN_LICENSE_SERVER_TYPES = list()
 
 #==============================================================================
 
@@ -44,6 +46,10 @@ class BaseLicenseType(object):
     @classmethod
     def getNoOfCpus(cls, tokenNo):
         
+        # not enough tokens for submit
+        if tokenNo < cls.TOKENS[0]:
+            return 0
+        
         if tokenNo not in cls.TOKENS:
             return cls.getNoOfCpus(tokenNo - 1)
         else:
@@ -63,9 +69,20 @@ class FlexLicenseType(BaseLicenseType):
 class DslsLicenseType(BaseLicenseType):
     
     NAME = 'dsls'
-    TOKENS = [5, 59, 68, 76, 85, 94, 103, 111, 120, 125, 130, 135, 140, 144,
-        149, 153, 157, 160, 165, 168, 172, 175, 179, 182, 185, 188, 192, 195,
-        198, 200, 203, 206, 209, 212, 214, 217, 220, 222, 225, 227]
+    TOKENS = [50, 59, 68, 76, 85, 94, 103, 111, 120, 125,
+            130, 135, 140, 144, 149, 153, 157, 160, 165, 168,
+            172, 175, 179, 182, 185, 188, 192, 195, 198, 200,
+            203, 206, 209, 212, 214, 217, 220, 222, 225, 227]
+
+#==============================================================================
+@utils.registerClass
+class PamcrashLicenseType(BaseLicenseType):
+    
+    NAME = 'PamCrash'
+    TOKENS = [26, 26, 27, 29, 29, 30, 31, 32, 32, 32,
+              33, 33, 34, 34, 34, 35, 35, 35, 35, 35,
+              36, 36, 36, 36, 36, 37, 37, 37, 37, 37,
+              37, 38]
     
 #==============================================================================
 
@@ -75,6 +92,20 @@ class BaseLicenseServerType(object):
     QLIC_COMMAND = 'qlic'
     QLIC_COUMNS = ['resource', 'total', 'limit', 'extern', 'intern', 'wait', 'free']
     
+    LICENSE_TYPE = DslsLicenseType
+
+    #-------------------------------------------------------------------------
+    
+    @classmethod
+    def getNoOfTokens(cls, cpuNo):
+        return cls.LICENSE_TYPE.getNoOfTokens(cpuNo)
+    
+    #-------------------------------------------------------------------------
+    
+    @classmethod
+    def getNoOfCpus(cls, tokenNo):
+        return cls.LICENSE_TYPE.getNoOfCpus(tokenNo)
+        
     #--------------------------------------------------------------------------
     @classmethod
     def getAvailableHosts(cls):
@@ -86,7 +117,7 @@ class BaseLicenseServerType(object):
         hosts = list()
         for line in lines:
             line = line.strip()
-            if not line.startswith('abaqus'):
+            if not line.startswith(cls.CODE):
                 continue
             
             parts = line.split()
@@ -134,8 +165,11 @@ class BaseLicenseServerType(object):
         stdout, _ = utils.runSubprocess(cls.QLIC_COMMAND)
         
         lines = stdout.splitlines()
-        line = lines[-3 + cls.ID]
-        
+        # locate corresponding line
+        for line in lines:
+            if cls.QUEUE_CODE in line:
+                break
+            
         status = dict()
         for label, value in zip(cls.QLIC_COUMNS,line.split()):
             if label != 'resource':
@@ -153,19 +187,27 @@ class BaseLicenseServerType(object):
         
         ''' Identifies type and number of tokens used by given user jobs.'''
         
+        licenseServerQueueCodes = dict()
+        for licenseServer in LICENSE_SERVER_TYPES:
+            licenseServerQueueCodes[licenseServer.QUEUE_CODE] = licenseServer
+                
         stdout, _ = utils.runSubprocess(cls.QLIC_COMMAND + ' -w')
         lines = stdout.splitlines()
         
         for line in lines:
             parts = line.split()
-            if len(parts) == 2:
-                licenseServerId = int(parts[0][-1])
-                    
+            if len(parts) == 2 and parts[0]:
+                licenseServerQueueCode = parts[0].strip()
+            
+            # skip different queues
+            if licenseServerQueueCode not in licenseServerQueueCodes:
+                continue
+            
             if userName in line and hostName in line:
                 # running job                    
                 if '@' in line:
                     # identify license server
-                    licenseServer = LICENSE_SERVER_TYPES[licenseServerId - 1]
+                    licenseServer = licenseServerQueueCodes[licenseServerQueueCode]
                     noOfTokens = int(parts[-1].split('=')[-1])
                     return licenseServer, noOfTokens 
                 
@@ -206,6 +248,7 @@ class Var1LicenseServerType(BaseLicenseServerType):
     NAME = 'VAR_1'
     ID = 2
     CODE = 'abaqus3'
+    QUEUE_CODE = 'qxt3'
 
 #==============================================================================
 @utils.registerClass
@@ -214,6 +257,7 @@ class Var2LicenseServerType(BaseLicenseServerType):
     NAME = 'VAR_2'
     ID = 1
     CODE = 'abaqus2'
+    QUEUE_CODE = 'qxt2'
 
 #==============================================================================
 @utils.registerClass
@@ -222,7 +266,32 @@ class CommercialLicenseServerType(BaseLicenseServerType):
     NAME = 'COMMERCIAL'
     ID = 0
     CODE = 'abaqus1'
+    QUEUE_CODE = 'qxt1'
 
+#==============================================================================
+@utils.registerClass
+class PamCrashLicenseServerType(BaseLicenseServerType):
+    
+#     container = PAMCRASH_LICENSE_SERVER_TYPES
+    
+    NAME = 'PAMCRASH'
+    ID = 3
+    CODE = 'pamcrash1'
+    QUEUE_CODE = 'pamcrash1'
+    
+    LICENSE_TYPE = PamcrashLicenseType
+
+#==============================================================================
+@utils.registerClass
+class NastranLicenseServerType(BaseLicenseServerType):
+    
+#     container = NASTRAN_LICENSE_SERVER_TYPES
+    
+    NAME = 'NASTRAN'
+    ID = 4
+    CODE = 'nastran'
+    QUEUE_CODE = 'nastran'
+    
 #==============================================================================
 
 class BaseExecutionServerType(object):
@@ -236,6 +305,7 @@ class BaseExecutionServerType(object):
     PATTERN = ''
     
     resources = None
+#     licenseServerTypes = None
     
     #-------------------------------------------------------------------------
     
@@ -262,7 +332,11 @@ class BaseExecutionServerType(object):
             licenceServer, noOfTokens = BaseLicenseServerType.getUserTokenStatus(
                 attrs['job_owner'], self.name)
             
-            noOfCpus = DslsLicenseType.getNoOfCpus(noOfTokens)
+            # in case of job running for a different solver
+            if licenceServer is None:
+                continue
+            
+            noOfCpus = licenceServer.getNoOfCpus(noOfTokens)
             attrs['used_cpus'] = noOfCpus
             attrs['licenceServer'] = licenceServer
             attrs['used_tokens'] = noOfTokens
@@ -324,6 +398,12 @@ class BaseExecutionServerType(object):
                        
         return self.infoLine
     
+#     #-------------------------------------------------------------------------
+#     @classmethod
+#     def connectLicenseServerTypes(cls, licenseServerTypes):
+#         
+#         cls.licenseServerTypes = licenseServerTypes
+        
     #-------------------------------------------------------------------------
     @classmethod
     def connectResources(cls):
@@ -579,23 +659,21 @@ class LicenseServerSelector(BaseDataSelector):
     
     #-------------------------------------------------------------------------
     
-#     def _getSortedLicenseServers(self):
-#          
-#         licenseServers = dict()
-#         for licenseServer in LICENSE_SERVER_TYPES.values():
-#             licenseServers[licenseServer.ID] = licenseServer
-#                  
-#         return [licenseServers[lsId] for lsId in sorted(licenseServers.keys())]
+    def _getAvailableLicenses(self):
+                
+        return LICENSE_SERVER_TYPES[:3]
     
     #-------------------------------------------------------------------------
     
     def getSelection(self):
         
+        licenseServerList = self._getAvailableLicenses()
+        
         options = list()
-        for licenseServer in LICENSE_SERVER_TYPES:#self._getSortedLicenseServers():
+        for licenseServer in licenseServerList:
             status = licenseServer.getTokenStatus()
-            options.append('%s DSLS license (free tokens: %s/%s)' % (
-                licenseServer.NAME, status['free'], status['total']))
+            options.append('%s %s license (free tokens: %s/%s)' % (
+                licenseServer.LICENSE_TYPE.NAME, licenseServer.NAME, status['free'], status['total']))
         
         # print list of servers
         index = self._getOptionFromList(
@@ -603,27 +681,28 @@ class LicenseServerSelector(BaseDataSelector):
             "Enter the number which represent ABAQUS queue [enter=%s]: " % self.DFT_OPTION_INDEX,
             options)
         
-#         return self._getSortedLicenseServers()[index]
-        return LICENSE_SERVER_TYPES[index]
-
+        return licenseServerList[index]
+    
 #==============================================================================
 
 class InputFileSelector(BaseDataSelector):
+    
+    FILE_EXT = ei.FileExtensions.ABAQUS_INPUT
     
     def __init__(self, parentApplication, workDir):
         super(InputFileSelector, self).__init__(parentApplication)
         
         self.workDir = workDir
-        
+                
     #--------------------------------------------------------------------------
 
     def getSelection(self):
         
-        inpFiles = glob.glob(os.path.join(self.workDir, '*.inp'))
+        inpFiles = glob.glob(os.path.join(self.workDir, '*%s' % self.FILE_EXT))
         
         # select input file
         if len(inpFiles) == 0:
-            raise DataSelectorException("Error: source *.inp wasn't found!")
+            raise DataSelectorException("Error: source *%s wasn't found!" % self.FILE_EXT)
         elif len(inpFiles) == 1:
             return inpFiles
         else:
@@ -634,22 +713,45 @@ class InputFileSelector(BaseDataSelector):
             
             return [inpFiles[index] for index in indexes]
             
-        
+#==============================================================================
 
+class RestartInputFileSelector(InputFileSelector):
+            
+    def getSelection(self):
+        
+        inpFiles = glob.glob(os.path.join(self.workDir, '*%s' % self.FILE_EXT))
+        
+        # select input file
+        if len(inpFiles) == 0:
+            raise DataSelectorException("Error: source *%s wasn't found!" % self.FILE_EXT)
+        elif len(inpFiles) == 1:
+            return inpFiles
+        else:
+            index = self._getOptionFromList('Available input files for restart',
+                'Select input file No. [enter=%s]: ' % self.DFT_OPTION_INDEX,
+                [os.path.basename(inpFileName) for inpFileName in inpFiles])
+            
+            return inpFiles[index]
+
+#==============================================================================
+
+class PamcrashInputFileSelector(InputFileSelector):
+    
+    FILE_EXT = ei.FileExtensions.PAMCRASH_INPUT
+    
 #==============================================================================
 
 class SolverVersionSelector(BaseDataSelector):
     
     DFT_OPTION_INDEX = 3
-        
+      
     #--------------------------------------------------------------------------
     
     def _getAvailableVersions(self):
 
 #TODO: load dynamically?
         
-        versions = ['abaqus6141', 'abaqus2016x', 'abaqus2017x',
-            'abaqus2018x', 'abaqus2018-HF4']
+        versions = ei.ABAQUS_SOLVER_LIST
         
         return versions
     
@@ -732,6 +834,12 @@ class ExecutionServerSelector(BaseDataSelector):
 
 #==============================================================================
 
+class PamCrashExecutionServerSelector(ExecutionServerSelector):
+    
+    DFT_OPTION_INDEX = 3
+    
+#==============================================================================
+
 class User(object):
     
     def __init__(self):
@@ -765,4 +873,97 @@ class ServerResources(object):
     
 #==============================================================================
 
+class RunningJob(object):
+    
+    COLUMNS_WIDTHS = [6, 9, 12, 55, 4, 21, 25, 7, 6]
+    
+    def __init__(self, attributes):
+                
+        
+        self._attributes = attributes
+        
+        if self._attributes['queue_name'] is not None:            
+            self.executionServer = BaseExecutionServerType.getServerFromName(
+                self._attributes['queue_name'])
+        else:
+            self.executionServer = None
+    
+    #--------------------------------------------------------------------------
+    
+    def __getitem__(self, attributeName):
+        
+        if attributeName in self._attributes:
+            return self._attributes[attributeName]
+        else:
+            return None
+    
+    #--------------------------------------------------------------------------
+    
+    def toString(self):
+        
+        lineFormat = ['{:>%s}' % w for w in self.COLUMNS_WIDTHS]
+        
+        string = ''
+        jobtime='not set'
+        if self._attributes['state'] == 'r':
+                jobtime = self._attributes['JAT_start_time']
+        elif self._attributes['state'] == 'dt':
+                jobtime = self._attributes['JAT_start_time']
+        else:
+                jobtime = self._attributes['JB_submission_time']
+        
+        queueName = self._attributes['queue_name']
+        if queueName is None:
+            queueName = ''
+        
+        string += '\n'+ ''.join(lineFormat).format(
+            self._attributes['JB_job_number'], self._attributes['JAT_prio'],
+            self._attributes['JB_owner'], self._attributes['JB_name'],
+            self._attributes['state'], jobtime, queueName,
+            self._attributes['hard_request'], self._attributes['slots'])
+        
+#         if self.executionServer is not None:
+#             print self.executionServer.freeCpuNo
+                
+        return string
+        
+#==============================================================================
 
+class Queue(object):
+    
+    COLUMN_LABELS = ["JOB-ID","priority","user","job-name","st",
+        "submit/start_at","queue name",'tokens', "slots"]
+    
+    def __init__(self):
+        
+        self.jobs = list()
+        
+        self.updateState()
+    
+    #--------------------------------------------------------------------------
+    
+    def updateState(self):
+        
+        jobAttributes = xmlio.GridEngineInterface.getQueueStat()
+        
+        self.jobs = list()
+        for jobAttribute in jobAttributes: 
+            self.jobs.append(RunningJob(jobAttribute))
+            
+    #--------------------------------------------------------------------------
+    
+    def __repr__(self):
+        
+        self.updateState()
+        
+        string = ''
+        lineFormat = ['{:>%s}' % w for w in RunningJob.COLUMNS_WIDTHS]
+        string += ''.join(lineFormat).format(*self.COLUMN_LABELS)
+        string += '\n'+ 150*'-'
+        
+        for job in self.jobs:
+            string += job.toString()
+        
+        return string
+    
+    
