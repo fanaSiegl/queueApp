@@ -27,6 +27,8 @@ class GridEngineInterface(object):
     @staticmethod
     def getHostsStat():
         
+        ''' Returns a list of all hosts - execution servers and their'''
+        
         stdout, _ = utils.runSubprocess('qhost -j -xml')
                 
         rootElement = ETree.fromstring(stdout)  
@@ -34,6 +36,11 @@ class GridEngineInterface(object):
         hosts = dict()
         for hostElement in rootElement.iter('host'):
             hostName = hostElement.attrib['name']
+            
+            # skip global host
+            if hostName == 'global' or 'test' in hostName:
+                continue
+            
             hosts[hostName] = dict()
             for hostValueElement in hostElement.iter('hostvalue'):
                 hostAttributeName = hostValueElement.attrib['name']
@@ -75,7 +82,21 @@ class GridEngineInterface(object):
             jobs.append(elemAttributes)
         
         return jobs
+    
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def getAvailableHost(licenseServerName):
         
+        stdout, _ = utils.runSubprocess('qstat -f -q %s -xml' % licenseServerName)
+            
+        rootElement = ETree.fromstring(stdout)
+        
+        hosts = list()
+        for hostElement in rootElement.iter('Queue-List'):
+            hostName = hostElement.find('name').text
+            hosts.append(hostName.split('@')[-1])
+        
+        return hosts
         
 #=============================================================================
 

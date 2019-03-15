@@ -22,11 +22,47 @@ LICENSE_SERVER_TYPES = list()
 EXECUTION_SERVER_TYPES = dict()
 PAMCRASH_LICENSE_SERVER_TYPES = list()
 NASTRAN_LICENSE_SERVER_TYPES = list()
+SOLVER_TYPES = dict()
 
 #==============================================================================
 
 class DataSelectorException(Exception): pass
 
+#==============================================================================
+
+class LicenseServerException(Exception): pass
+
+#==============================================================================
+
+class BaseSolverType(object):
+    
+    container = SOLVER_TYPES
+    NAME = ''
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def getSolverTypeFromName(cls, name):
+                
+        for solverTypeName , solverType in SOLVER_TYPES.iteritems():
+            if solverTypeName.lower() in name.lower():
+                return solverType
+        
+        return None
+
+#==============================================================================
+@utils.registerClass
+class AbaqusSolverType(BaseSolverType):
+    
+    NAME = 'ABAQUS'
+    QUEUE_COLOUR = utils.ConsoleColors.BLUE
+
+#==============================================================================
+@utils.registerClass
+class PamCrashSolverType(BaseSolverType):
+    
+    NAME = 'PamCrash'
+    QUEUE_COLOUR = utils.ConsoleColors.GREEN
+    
 #==============================================================================
 
 class BaseLicenseType(object):
@@ -89,19 +125,32 @@ class PamcrashLicenseType(BaseLicenseType):
 class BaseLicenseServerType(object):
     
     container = LICENSE_SERVER_TYPES
-    QLIC_COMMAND = 'qlic'
-    QLIC_COUMNS = ['resource', 'total', 'limit', 'extern', 'intern', 'wait', 'free']
     
     LICENSE_TYPE = DslsLicenseType
-
-    #-------------------------------------------------------------------------
     
+    resources = None
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def toOptionLine(cls):
+        
+        status = cls.getTokenStatus()
+        optionLine = '%s %s license (free tokens: %s/%s)' % (
+            cls.LICENSE_TYPE.NAME, cls.NAME, status['free'], status['total'])
+        
+        return optionLine
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def connectResources(cls):
+        cls.resources = Resources
+    
+    #-------------------------------------------------------------------------
     @classmethod
     def getNoOfTokens(cls, cpuNo):
         return cls.LICENSE_TYPE.getNoOfTokens(cpuNo)
     
     #-------------------------------------------------------------------------
-    
     @classmethod
     def getNoOfCpus(cls, tokenNo):
         return cls.LICENSE_TYPE.getNoOfCpus(tokenNo)
@@ -109,24 +158,26 @@ class BaseLicenseServerType(object):
     #--------------------------------------------------------------------------
     @classmethod
     def getAvailableHosts(cls):
-                
-        stdout, _ = utils.runSubprocess('qstat -f -q %s' % cls.CODE)
         
-        lines = stdout.splitlines()
+        return cls.resources.availableLicenseServerHosts[cls]
         
-        hosts = list()
-        for line in lines:
-            line = line.strip()
-            if not line.startswith(cls.CODE):
-                continue
-            
-            parts = line.split()
-            nameString = parts[0]
-            executionServer = BaseExecutionServerType.getServerFromName(nameString)
-            executionServer.setInfoLine(line)
-            hosts.append(executionServer)
-            
-        return hosts
+#         stdout, _ = utils.runSubprocess('qstat -f -q %s' % cls.CODE)
+#         
+#         lines = stdout.splitlines()
+#         
+#         hosts = list()
+#         for line in lines:
+#             line = line.strip()
+#             if not line.startswith(cls.CODE):
+#                 continue
+#             
+#             parts = line.split()
+#             nameString = parts[0]
+#             executionServer = BaseExecutionServerType.getServerFromName(nameString)
+#             executionServer.setInfoLine(line)
+#             hosts.append(executionServer)
+#             
+#         return hosts
     
     #--------------------------------------------------------------------------
     @classmethod
@@ -162,56 +213,71 @@ class BaseLicenseServerType(object):
     @classmethod
     def getTokenStatus(cls):
         
-        stdout, _ = utils.runSubprocess(cls.QLIC_COMMAND)
-        
-        lines = stdout.splitlines()
-        # locate corresponding line
-        for line in lines:
-            if cls.QUEUE_CODE in line:
-                break
-            
-        status = dict()
-        for label, value in zip(cls.QLIC_COUMNS,line.split()):
-            if label != 'resource':
-                try:
-                    value = int(value)
-                except ValueError as e:
-                    value = 0
-            status[label] = value
-        
-        return status
+        return cls.resources.tokenStatus[cls]
+#         
+#         stdout, _ = utils.runSubprocess(cls.QLIC_COMMAND)
+#         
+#         lines = stdout.splitlines()
+#         # locate corresponding line
+#         for line in lines:
+#             if cls.QUEUE_CODE in line:
+#                 break
+#             
+#         status = dict()
+#         for label, value in zip(cls.QLIC_COUMNS,line.split()):
+#             if label != 'resource':
+#                 try:
+#                     value = int(value)
+#                 except ValueError as e:
+#                     value = 0
+#             status[label] = value
+#         
+#         return status
     
     #--------------------------------------------------------------------------
     @classmethod
-    def getUserTokenStatus(cls, userName, hostName):
+    def getLicenseServerTypeFromName(cls, licenseServerQueueCode):
         
-        ''' Identifies type and number of tokens used by given user jobs.'''
+        ''' licenseServerQueueCode = abaqus1@* '''
         
-        licenseServerQueueCodes = dict()
         for licenseServer in LICENSE_SERVER_TYPES:
-            licenseServerQueueCodes[licenseServer.QUEUE_CODE] = licenseServer
-                
-        stdout, _ = utils.runSubprocess(cls.QLIC_COMMAND + ' -w')
-        lines = stdout.splitlines()
+            if licenseServer.CODE in licenseServerQueueCode:
+                return licenseServer
         
-        for line in lines:
-            parts = line.split()
-            if len(parts) == 2 and parts[0]:
-                licenseServerQueueCode = parts[0].strip()
-            
-            # skip different queues
-            if licenseServerQueueCode not in licenseServerQueueCodes:
-                continue
-            
-            if userName in line and hostName in line:
-                # running job                    
-                if '@' in line:
-                    # identify license server
-                    licenseServer = licenseServerQueueCodes[licenseServerQueueCode]
-                    noOfTokens = int(parts[-1].split('=')[-1])
-                    return licenseServer, noOfTokens 
-                
-        return None, 0
+        raise LicenseServerException(
+            'Unknown license server pattern: %s' % licenseServerQueueCode)
+        
+    #--------------------------------------------------------------------------
+#     @classmethod
+#     def getUserTokenStatus(cls, userName, hostName):
+#         
+#         ''' Identifies type and number of tokens used by given user jobs.'''
+#         
+#         licenseServerQueueCodes = dict()
+#         for licenseServer in LICENSE_SERVER_TYPES:
+#             licenseServerQueueCodes[licenseServer.QUEUE_CODE] = licenseServer
+#                 
+#         stdout, _ = utils.runSubprocess(cls.QLIC_COMMAND + ' -w')
+#         lines = stdout.splitlines()
+#         
+#         for line in lines:
+#             parts = line.split()
+#             if len(parts) == 2 and parts[0]:
+#                 licenseServerQueueCode = parts[0].strip()
+#             
+#             # skip different queues
+#             if licenseServerQueueCode not in licenseServerQueueCodes:
+#                 continue
+#             
+#             if userName in line and hostName in line:
+#                 # running job                    
+#                 if '@' in line:
+#                     # identify license server
+#                     licenseServer = licenseServerQueueCodes[licenseServerQueueCode]
+#                     noOfTokens = int(parts[-1].split('=')[-1])
+#                     return licenseServer, noOfTokens 
+#                 
+#         return None, 0
     
     #--------------------------------------------------------------------------
     @classmethod
@@ -305,7 +371,6 @@ class BaseExecutionServerType(object):
     PATTERN = ''
     
     resources = None
-#     licenseServerTypes = None
     
     #-------------------------------------------------------------------------
     
@@ -317,32 +382,39 @@ class BaseExecutionServerType(object):
         self.infoLine = ''
         
         self.runningJobs = dict()
-        self.freeCpuNo = self.NO_OF_CORES
+#         self.freeCpuNo = self.NO_OF_CORES
         self.isUserMachine = False
         
         self._identityUserMaschine()
         self._checkRunningJobs()
-        
+                
     #-------------------------------------------------------------------------
     
     def _checkRunningJobs(self):
         
         usedCpuNo = 0
         for jobId, attrs in self.getRuningJobs().iteritems():
-            licenceServer, noOfTokens = BaseLicenseServerType.getUserTokenStatus(
-                attrs['job_owner'], self.name)
-            
-            # in case of job running for a different solver
-            if licenceServer is None:
-                continue
-            
-            noOfCpus = licenceServer.getNoOfCpus(noOfTokens)
-            attrs['used_cpus'] = noOfCpus
-            attrs['licenceServer'] = licenceServer
-            attrs['used_tokens'] = noOfTokens
-            usedCpuNo += noOfCpus
-            
-            self.runningJobs[jobId] = attrs
+            if attrs['job_state'] == 'r':
+                job = self.resources.jobsInQueue[jobId]
+#                 noOfTokens = int(job['hard_request'])
+#                 
+#                 licenceServer = BaseLicenseServerType.getLicenseServerTypeFromName(
+#                     job['hard_req_queue'])
+#             
+# #                 licenceServer, noOfTokens = BaseLicenseServerType.getUserTokenStatus(
+# #                     attrs['job_owner'], self.name)
+# #                 
+# #                 # in case of job running for a different solver
+# #                 if licenceServer is None:
+# #                     continue
+#                 
+#                 noOfCpus = licenceServer.getNoOfCpus(noOfTokens)
+#                 attrs['used_cpus'] = noOfCpus
+#                 attrs['licenceServer'] = licenceServer
+#                 attrs['used_tokens'] = noOfTokens
+                usedCpuNo += job.noOfCpus
+                
+                self.runningJobs[jobId] = job
         
         self.freeCpuNo = self.NO_OF_CORES - usedCpuNo
             
@@ -375,7 +447,7 @@ class BaseExecutionServerType(object):
     
     #-------------------------------------------------------------------------
     
-    def getInfoLine(self):
+    def getInfoLine(self, prefix=''):
                  
         # add running jobs info
 #         for jobId, attrs in self.getRuningJobs().iteritems():
@@ -388,14 +460,20 @@ class BaseExecutionServerType(object):
 #                 self.infoLine += '\n\tJob: %s - status: %s (%s uses %s %s tokens)' % (
 #                     jobId, attrs['job_state'], attrs['job_owner'], noOfTokens, licenceServer.NAME)#, attrs['job_name'])
         
-        for jobId, attrs in self.runningJobs.iteritems():
-            self.infoLine += '\n\tRunning job: %s (%s uses %s %s tokens %s CPUs)' % (
-                jobId, attrs['job_owner'], attrs['used_tokens'], attrs['licenceServer'].NAME, attrs['used_cpus'])
         
-        # highlight user machine        
-        if self.isUserMachine:
-            self.infoLine = utils.ConsoleColors.OKBLUE + self.infoLine + utils.ConsoleColors.ENDC
-                       
+        resources = self.getResources()
+        
+        pattern = '{}{:>%s}' % str(55 - len(prefix + self.fullName))
+        self.infoLine = pattern.format(prefix + self.fullName, resources['load_avg']) 
+        
+        for job in self.runningJobs.values():
+            self.infoLine += '\n\tRunning job: %s (%s uses %s %s tokens %s CPUs)' % (
+                job.id, job['JB_owner'], job.noOfTokens, job.licenceServer.NAME, job.noOfCpus)
+        
+#         # highlight user machine        
+#         if self.isUserMachine:
+#             self.infoLine = utils.ConsoleColors.OKBLUE + self.infoLine + utils.ConsoleColors.ENDC
+# #                        
         return self.infoLine
     
 #     #-------------------------------------------------------------------------
@@ -405,26 +483,33 @@ class BaseExecutionServerType(object):
 #         cls.licenseServerTypes = licenseServerTypes
         
     #-------------------------------------------------------------------------
+#     @classmethod
+#     def connectResources2(cls):
+#         cls.resources = Resources()
+        
+    #-------------------------------------------------------------------------
     @classmethod
     def connectResources(cls):
-        
-        cls.resources = ServerResources()
+        cls.resources = Resources
     
     #-------------------------------------------------------------------------
     @classmethod
     def getDescription(cls):
-        
+         
         return '%s (%s cores, %s GPU, %s, free cores:N/A)' % (
             cls.NAME, cls.NO_OF_CORES, cls.NO_OF_GPU, cls.DESCRIPTION)
+    
+#     def getDescription(self):
+#         return '%s (%s cores, %s GPU, %s, free cores: %s)' % (
+#                 self.NAME, self.NO_OF_CORES, self.NO_OF_GPU, self.DESCRIPTION,
+#                 self.freeCpuNo)
     
     #-------------------------------------------------------------------------
     @classmethod
     def getServerFromName(cls, nameString):
         
         for serverType in EXECUTION_SERVER_TYPES.values():
-            
             matchServer = re.match(serverType.PATTERN, nameString)
-            
             if matchServer:
                 return serverType(matchServer.group(1), nameString)
                 
@@ -449,7 +534,8 @@ class So1ExecutionServerType(BaseExecutionServerType):
     NO_OF_GPU = 1
     DESCRIPTION = 'low performance'
     
-    PATTERN = r'.*@(.*-so1)\.cax\.lan'       
+    PATTERN = r'.*@(.*-so1)\.cax\.lan'
+       
     
 #==============================================================================
 @utils.registerClass
@@ -494,6 +580,7 @@ class WorkstationExecutionServerType(BaseExecutionServerType):
 class BaseDataSelector(object):
     
     DFT_OPTION_INDEX = 1
+    DESCRIPTION = ''
     
     #-------------------------------------------------------------------------
     
@@ -592,6 +679,18 @@ class BaseDataSelector(object):
         return
     
     #-------------------------------------------------------------------------
+    
+    def getOptions(self):
+        
+        return list()
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+        
+        return index
+    
+    #-------------------------------------------------------------------------
     @staticmethod
     def getTextInput(prompt, dftValue):
         
@@ -613,7 +712,6 @@ class BaseDataSelector(object):
         
         try:
             timeObject = time.strptime(text, '%m%d%H%M')
-            
             timeString = time.strftime('%m%d%H%M', timeObject)
             
             return timeString
@@ -656,49 +754,80 @@ class BaseDataSelector(object):
 class LicenseServerSelector(BaseDataSelector):
     
     DFT_OPTION_INDEX = 1
+    DESCRIPTION = 'Available license servers'
     
     #-------------------------------------------------------------------------
     
-    def _getAvailableLicenses(self):
-                
-        return LICENSE_SERVER_TYPES[:3]
+    def getOptions(self):
+        
+        options = list()
+        for licenseServer in LICENSE_SERVER_TYPES[:3]:   
+            options.append(licenseServer.toOptionLine())
+        
+        return options
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+#         
+#         licenseServerList = self.getOptions()
+        
+        return LICENSE_SERVER_TYPES[:3][index]
     
     #-------------------------------------------------------------------------
     
     def getSelection(self):
         
-        licenseServerList = self._getAvailableLicenses()
-        
-        options = list()
-        for licenseServer in licenseServerList:
-            status = licenseServer.getTokenStatus()
-            options.append('%s %s license (free tokens: %s/%s)' % (
-                licenseServer.LICENSE_TYPE.NAME, licenseServer.NAME, status['free'], status['total']))
-        
+        options = self.getOptions()
+#         licenseServerList = self.getOptions()
+#         
+#         options = list()
+#         for licenseServer in licenseServerList:
+#             status = licenseServer.getTokenStatus()
+#             options.append('%s %s license (free tokens: %s/%s)' % (
+#                 licenseServer.LICENSE_TYPE.NAME, licenseServer.NAME, status['free'], status['total']))
+                        
         # print list of servers
         index = self._getOptionFromList(
-            'Available license servers',
+            self.DESCRIPTION,
             "Enter the number which represent ABAQUS queue [enter=%s]: " % self.DFT_OPTION_INDEX,
             options)
         
-        return licenseServerList[index]
+        return self.indexToItem(index)
     
 #==============================================================================
 
 class InputFileSelector(BaseDataSelector):
     
     FILE_EXT = ei.FileExtensions.ABAQUS_INPUT
-    
-    def __init__(self, parentApplication, workDir):
-        super(InputFileSelector, self).__init__(parentApplication)
+
+#     def __init__(self, parentApplication):
+#          
+#         self.parentApplication = parentApplication
+#         
+#         # this is static to prevent content change in the middle of application run
+#         self.filesList = glob.glob(os.path.join(
+#             self.parentApplication.getWorkDir(), '*%s' % self.FILE_EXT))
+            
+    #--------------------------------------------------------------------------
+
+    def getOptions(self):
         
-        self.workDir = workDir
-                
+        return glob.glob(os.path.join(self.parentApplication.getWorkDir(), '*%s' % self.FILE_EXT))
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, indexes):
+        
+        inpFiles = self.getOptions()
+        
+        return [inpFiles[index] for index in indexes]
+    
     #--------------------------------------------------------------------------
 
     def getSelection(self):
         
-        inpFiles = glob.glob(os.path.join(self.workDir, '*%s' % self.FILE_EXT))
+        inpFiles = self.getOptions()
         
         # select input file
         if len(inpFiles) == 0:
@@ -711,7 +840,7 @@ class InputFileSelector(BaseDataSelector):
                 [os.path.basename(inpFileName) for inpFileName in inpFiles],
                 multiSelection=True)
             
-            return [inpFiles[index] for index in indexes]
+            return self.indexToItem(indexes)
             
 #==============================================================================
 
@@ -719,7 +848,7 @@ class RestartInputFileSelector(InputFileSelector):
             
     def getSelection(self):
         
-        inpFiles = glob.glob(os.path.join(self.workDir, '*%s' % self.FILE_EXT))
+        inpFiles = self.getOptions()
         
         # select input file
         if len(inpFiles) == 0:
@@ -732,22 +861,17 @@ class RestartInputFileSelector(InputFileSelector):
                 [os.path.basename(inpFileName) for inpFileName in inpFiles])
             
             return inpFiles[index]
-
-#==============================================================================
-
-class PamcrashInputFileSelector(InputFileSelector):
-    
-    FILE_EXT = ei.FileExtensions.PAMCRASH_INPUT
     
 #==============================================================================
 
 class SolverVersionSelector(BaseDataSelector):
     
     DFT_OPTION_INDEX = 3
+    DESCRIPTION = 'Choose the ABAQUS solver version'
       
     #--------------------------------------------------------------------------
     
-    def _getAvailableVersions(self):
+    def getOptions(self):
 
 #TODO: load dynamically?
         
@@ -759,22 +883,33 @@ class SolverVersionSelector(BaseDataSelector):
 
     def getSelection(self):
         
+        options = self.getOptions()
+        
         index = self._getOptionFromList(
-            'Choose the ABAQUS solver version',
+            self.DESCRIPTION,
             'Enter number which represent version of solver[enter=%s]: ' % self.DFT_OPTION_INDEX,
-            self._getAvailableVersions())
+            options)
             
-        return self._getAvailableVersions()[index]
-
+        return options[index]
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+        
+        versions = self.getOptions()
+        
+        return versions[index]
+    
 #==============================================================================
 
 class ExecutionServerSelector(BaseDataSelector):
     
     DFT_OPTION_INDEX = 2
+    DESCRIPTION = 'Choose the execution host'
     
     #--------------------------------------------------------------------------
     
-    def getAvailableHosts(self):
+    def getOptions(self):
         
 #         hosts = self.parentApplication.profile.jobSettings.licenseServer.getAvailableHosts()
 #         
@@ -799,45 +934,99 @@ class ExecutionServerSelector(BaseDataSelector):
         
         infoLines = list()
         for host in allHosts:
-            infoLines.append(host.getInfoLine())
-                
-        return allHosts, infoLines, serverHosts, userHosts
+            infoLine = host.getInfoLine(licenseServer.CODE)
+            infoLines.append(infoLine)
         
-    #--------------------------------------------------------------------------
-
-    def getSelection(self):
-        
-        hosts, infoLines, serverHosts, userHosts = self.getAvailableHosts()
-        
-        self.printSelectionTitle('Choose the execution host')
-        
-        description = 'Info - your computer is: %s' % self.parentApplication.profile.user.machine
-        
-        # server type overview        
+        # server type overview  
+        description = 'Info - your computer is: %s' % self.parentApplication.profile.user.machine      
         for server in serverHosts:
             description += '\n\t%s (%s cores, %s GPU, %s, free cores: %s)' % (
                 server.NAME, server.NO_OF_CORES, server.NO_OF_GPU, server.DESCRIPTION,
                 server.freeCpuNo)
-        
+#             description += '\n\t' + server.getDescription()
+                
         description += '\n\t%s' % WorkstationExecutionServerType.getDescription()
+        
+        return allHosts, infoLines, serverHosts, userHosts, description
+    
+    #--------------------------------------------------------------------------
+
+    def getSelection(self):
+        
+        hosts, infoLines, serverHosts, userHosts, description = self.getOptions()
         
         description += '\nAvailable execution hosts for this queue'
         description += '\n' + 80*'-'
         description += '\nqueuename                      qtype resv/used/tot. load_avg    arch       states'
         description += '\n' + 80*'-'
         
+        # highlight user machine   
+        for optionIndex, host in enumerate(hosts):
+            if host.isUserMachine:
+                infoLine = infoLines[optionIndex]
+                infoLines[optionIndex] = utils.ConsoleColors.OKBLUE + infoLine + utils.ConsoleColors.ENDC
+        
+        self.printSelectionTitle(self.DESCRIPTION)
+        
         index = self._getOptionFromList(description, 
             "Enter the number which represent prefered execution host [enter=%s]: " % self.DFT_OPTION_INDEX,
             infoLines)
                         
         return hosts[index]
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+        
+        hosts, infoLines, serverHosts, userHosts, description = self.getOptions()
+        
+        return hosts[index]
 
+#==============================================================================
+
+class PamcrashInputFileSelector(InputFileSelector):
+    
+    FILE_EXT = ei.FileExtensions.PAMCRASH_INPUT
+    
 #==============================================================================
 
 class PamCrashExecutionServerSelector(ExecutionServerSelector):
     
     DFT_OPTION_INDEX = 3
+
+#==============================================================================
+
+class PamCrashLicenseServerSelector(LicenseServerSelector):
     
+    DFT_OPTION_INDEX = 1
+    DESCRIPTION = 'Available license servers'
+    
+    #-------------------------------------------------------------------------
+    
+    def getOptions(self):
+        
+        return [LICENSE_SERVER_TYPES[3].toOptionLine()]
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+        
+        return LICENSE_SERVER_TYPES[3]
+
+#==============================================================================
+
+class PamCrashSolverVersionSelector(SolverVersionSelector):
+    
+    DFT_OPTION_INDEX = 1
+    DESCRIPTION = 'Choose the PamCrash solver version'
+      
+    #--------------------------------------------------------------------------
+    
+    def getOptions(self):        
+        versions = ei.PAMCRASH_SOLVER_LIST
+        
+        return versions
+            
 #==============================================================================
 
 class User(object):
@@ -848,46 +1037,193 @@ class User(object):
 
 #==============================================================================
 
-class ServerResources(object):
+class Resources(object):
     
-    def __init__(self):
-        
-        self._hostsStat = dict()
-        
-        self.updateHostStat()
+    QLIC_COMMAND = 'qlic'
+    QLIC_COUMNS = ['resource', 'total', 'limit', 'extern', 'intern', 'wait', 'free']
+    
+    executionServers = dict()
+    availableLicenseServerHosts = dict()
+    jobsInQueue = dict()
+    tokenStatus = dict()
+    
+    _hostsStat = dict()
+    
+#     def __init__(self):
+#                 
+#         self.updateHostStat()
     
     #--------------------------------------------------------------------------
-    
-    def updateHostStat(self):
+    @classmethod
+    def initialise(cls):
         
-        self._hostsStat = xmlio.GridEngineInterface.getHostsStat()
+        cls._setupResources()
+        
+        cls._setupJobsInQueue()
+        cls._setupExecutionServers()
+        cls._setAvailableHosts()
+        cls._getTokenStatus()
+        
+#         print cls.executionServers
+#         print cls.availableLicenseServerHosts
+#         print cls.jobsInQueue
+#         print cls.tokenStatus
     
     #--------------------------------------------------------------------------
+    @classmethod
+    def updateState(cls):
+        
+        cls._setupJobsInQueue()
+        cls.updateHostStat()
+        
+    #--------------------------------------------------------------------------
+    @classmethod
+    def _setupResources(cls):
+        
+        for licenceServer in LICENSE_SERVER_TYPES:
+            licenceServer.connectResources()
+        
+        BaseExecutionServerType.connectResources()
+        Queue.connectResources()
+        
+    #--------------------------------------------------------------------------
+    @classmethod
+    def updateHostStat(cls):
+        
+        cls._hostsStat = xmlio.GridEngineInterface.getHostsStat()
     
-    def getHostStat(self, hostName):
+    #-------------------------------------------------------------------------
+    @classmethod
+    def _setupExecutionServers(cls):
+        
+        cls._hostsStat = xmlio.GridEngineInterface.getHostsStat()
                 
-        if hostName not in self._hostsStat:
+        for hostName in cls._hostsStat:
+            hostNameString = '@' + hostName
+            executionServer = None
+            
+            executionServer = BaseExecutionServerType.getServerFromName(hostNameString)
+            cls.executionServers[hostName] = executionServer
+            
+#             for serverType in EXECUTION_SERVER_TYPES.values():
+#                 matchServer = re.match(serverType.PATTERN, hostNameString)
+#                 if matchServer:
+#                     executionServer = serverType(matchServer.group(1), hostNameString)
+#                     break
+#             
+#             if executionServer is not None:
+#                 cls.executionServers[hostName] = executionServer
+#             else:
+#                 raise DataSelectorException('Server name not recognised! name=%s' % hostName)
+        
+    #--------------------------------------------------------------------------
+    @classmethod
+    def getHostStat(cls, hostName):
+                
+        if hostName not in cls._hostsStat:
             raise xmlio.GridEngineInterfaceException('Unknown host name: %s' % hostName)
         
-        return self._hostsStat[hostName]
+        return cls._hostsStat[hostName]
     
+    #--------------------------------------------------------------------------
+    @classmethod
+    def _setAvailableHosts(cls):
+            
+        for licenceServer in LICENSE_SERVER_TYPES:
+            hosts = xmlio.GridEngineInterface.getAvailableHost(licenceServer.CODE)
+            
+            executionServers = list()
+            for hostName in hosts:
+                executionServer = cls.executionServers[hostName]
+                
+                executionServers.append(executionServer)
+#                 # sort host according to their type
+#                 if type(executionServer) is WorkstationExecutionServerType:
+#                     executionServers.append(executionServer)
+#                 else:
+#                     executionServers.insert(0, executionServer)
+            cls.availableLicenseServerHosts[licenceServer] = executionServers
+
+    #--------------------------------------------------------------------------
+    @classmethod
+    def _setupJobsInQueue(cls):
+        
+        jobAttributes = xmlio.GridEngineInterface.getQueueStat()
+        
+        # always clear content
+        cls.jobsInQueue = dict()
+        for jobAttribute in jobAttributes: 
+            job = RunningJob(jobAttribute)
+            cls.jobsInQueue[job.id] = job
+    
+    #--------------------------------------------------------------------------
+    @classmethod
+    def _getTokenStatus(cls):
+        
+        stdout, _ = utils.runSubprocess(cls.QLIC_COMMAND)
+        
+        licenseServerTypes = list()
+        licenseServerTypes.extend(LICENSE_SERVER_TYPES)
+        licenseServerTypes.extend(PAMCRASH_LICENSE_SERVER_TYPES)
+        licenseServerTypes.extend(NASTRAN_LICENSE_SERVER_TYPES)
+        
+        lines = stdout.splitlines()
+        
+        for licenseServerType in licenseServerTypes:
+            # locate corresponding line
+            for line in lines:
+                if licenseServerType.QUEUE_CODE in line:
+                    break
+                
+            status = dict()
+            for label, value in zip(cls.QLIC_COUMNS, line.split()):
+                if label != 'resource':
+                    try:
+                        value = int(value)
+                    except ValueError as e:
+                        value = 0
+                status[label] = value
+            
+            cls.tokenStatus[licenseServerType] = status
+        
+                        
 #==============================================================================
 
 class RunningJob(object):
     
-    COLUMNS_WIDTHS = [6, 9, 12, 55, 4, 21, 25, 7, 6]
+    COLUMNS_WIDTHS = [6, 10, 12, 55, 4, 21, 25, 7, 6]
     
     def __init__(self, attributes):
                 
         
         self._attributes = attributes
         
-        if self._attributes['queue_name'] is not None:            
-            self.executionServer = BaseExecutionServerType.getServerFromName(
-                self._attributes['queue_name'])
-        else:
-            self.executionServer = None
+#         if self._attributes['queue_name'] is not None:
+#             print self._attributes['queue_name']         
+#             self.executionServer = BaseExecutionServerType.getServerFromName(
+#                 self._attributes['queue_name'])
+#         else:
+#             self.executionServer = None
+        
+        
+        
+        self.id = self._attributes['JB_job_number']
+        
+        self.licenceServer = BaseLicenseServerType.getLicenseServerTypeFromName(
+            self._attributes['hard_req_queue'])
+        
+        self.noOfTokens = int(self._attributes['hard_request'])
+        self.noOfCpus = self.licenceServer.getNoOfCpus(self.noOfTokens)
+        
+        self._idetifySolver()
+        
+    #--------------------------------------------------------------------------
     
+    def _idetifySolver(self):
+        
+        self.solverType = BaseSolverType.getSolverTypeFromName(
+            self._attributes['hard_req_queue'])
+                
     #--------------------------------------------------------------------------
     
     def __getitem__(self, attributeName):
@@ -899,24 +1235,30 @@ class RunningJob(object):
     
     #--------------------------------------------------------------------------
     
-    def toString(self):
+    def getTooltip(self):
+                
+        return '\n'.join(['%s = %s' % (k, v) for k, v in self._attributes.iteritems()])
+    
+    #--------------------------------------------------------------------------
+    
+    def toString(self, colour=True):
         
         lineFormat = ['{:>%s}' % w for w in self.COLUMNS_WIDTHS]
         
         string = ''
         jobtime='not set'
         if self._attributes['state'] == 'r':
-                jobtime = self._attributes['JAT_start_time']
+            jobtime = self._attributes['JAT_start_time']
         elif self._attributes['state'] == 'dt':
-                jobtime = self._attributes['JAT_start_time']
-        else:
-                jobtime = self._attributes['JB_submission_time']
+            jobtime = self._attributes['JAT_start_time']
+        elif 'JB_submission_time' in self._attributes:
+            jobtime = self._attributes['JB_submission_time']
         
         queueName = self._attributes['queue_name']
         if queueName is None:
             queueName = ''
         
-        string += '\n'+ ''.join(lineFormat).format(
+        string += ''.join(lineFormat).format(
             self._attributes['JB_job_number'], self._attributes['JAT_prio'],
             self._attributes['JB_owner'], self._attributes['JB_name'],
             self._attributes['state'], jobtime, queueName,
@@ -924,8 +1266,11 @@ class RunningJob(object):
         
 #         if self.executionServer is not None:
 #             print self.executionServer.freeCpuNo
-                
-        return string
+        
+        if self.solverType is not None and colour:
+            string = self.solverType.QUEUE_COLOUR + string + utils.ConsoleColors.ENDC
+        
+        return '\n'+ string
         
 #==============================================================================
 
@@ -934,34 +1279,51 @@ class Queue(object):
     COLUMN_LABELS = ["JOB-ID","priority","user","job-name","st",
         "submit/start_at","queue name",'tokens', "slots"]
     
+    resources = None
+    
     def __init__(self):
         
         self.jobs = list()
         
         self.updateState()
-    
+
+    #-------------------------------------------------------------------------
+    @classmethod
+    def connectResources(cls):
+        cls.resources = Resources
+        
     #--------------------------------------------------------------------------
     
     def updateState(self):
         
-        jobAttributes = xmlio.GridEngineInterface.getQueueStat()
+        self.jobs = self.resources.jobsInQueue
         
-        self.jobs = list()
-        for jobAttribute in jobAttributes: 
-            self.jobs.append(RunningJob(jobAttribute))
+#         jobAttributes = xmlio.GridEngineInterface.getQueueStat()
+#         
+#         self.jobs = list()
+#         for jobAttribute in jobAttributes: 
+#             self.jobs.append(RunningJob(jobAttribute))
             
+    #--------------------------------------------------------------------------
+    
+    def getColumnLabels(self):
+        
+        string = ''
+        lineFormat = ['{:>%s}' % w for w in RunningJob.COLUMNS_WIDTHS]
+        string += ''.join(lineFormat).format(*self.COLUMN_LABELS)
+                
+        return string
+    
     #--------------------------------------------------------------------------
     
     def __repr__(self):
         
         self.updateState()
         
-        string = ''
-        lineFormat = ['{:>%s}' % w for w in RunningJob.COLUMNS_WIDTHS]
-        string += ''.join(lineFormat).format(*self.COLUMN_LABELS)
+        string = self.getColumnLabels()
         string += '\n'+ 150*'-'
         
-        for job in self.jobs:
+        for job in self.jobs.values():
             string += job.toString()
         
         return string

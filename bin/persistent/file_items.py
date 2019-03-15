@@ -222,7 +222,7 @@ class AbaqusJobExecutableFile(object):
         if self.parentJob.numberOfCores > 1:
             # explicit calculation
             if self.parentJob.inpFile.dynamicsExplicit:
-                runCommand += ' parallel=domain cpus=%s domains=$ncpus' % (
+                runCommand += ' parallel=domain cpus=%s domains=%s' % (
                     self.parentJob.numberOfCores, self.parentJob.numberOfCores)
             
             # standard calculation

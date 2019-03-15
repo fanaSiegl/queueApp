@@ -6,7 +6,6 @@
 import os
 import sys
 import ConfigParser
-import numpy as np
 import subprocess
 import getpass
 import socket
@@ -91,5 +90,9 @@ class ConsoleColors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    BLUE = "\033[1;34m"
+    CYAN = "\033[1;36m"
+    GREEN = "\033[0;32m"
+    MAGENTA = '\033[0;35m'
 
 #==============================================================================

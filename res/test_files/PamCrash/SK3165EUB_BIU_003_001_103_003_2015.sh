@@ -1,13 +1,13 @@
 #!/bin/bash
-#$ -hard -l pamcrash1=0
+#$ -hard -l pamcrash1=38
 #$ -q pamcrash1@*
-#$ -soft -q pamcrash1@mb-so3.cax.lan
+#$ -soft -q @mb-so3.cax.lan
 #$ -cwd -V
 #$ -j y
 #$ -N SK3165EUB_BIU_003_001_103_003_2015
-#$ -p 50
-#$ -ac popis_ulohy=datacheck
-#$ -a 03081257
+#$ -p -50
+#$ -ac popis_ulohy=-
+#$ -a 03151431
 #$ -M frantisek.siegl@idiada.cz
 #$ -m bes
 umask 0002
@@ -16,7 +16,7 @@ cd $scratch_dir
 echo "Starting PAMCRASH"
 export PAM_LMD_LICENSE_FILE=7789@mb-dc1
 export PAMHOME=/usr1/applications/pamcrash/v2015.03/pamcrash_safe/
-/usr1/applications/pamcrash/v2015.03/pamcrash_safe/2015.03/pamworld -np 1 -lic CRASHSAF SK3165EUB_BIU_003_001_103_003_2015 > SK3165EUB_BIU_003_001_103_003_2015.log 
+/usr1/applications/pamcrash/v2015.03/pamcrash_safe/2015.03/pamworld -np 32 -lic CRASHSAF SK3165EUB_BIU_003_001_103_003_2015 > SK3165EUB_BIU_003_001_103_003_2015.log 
 echo "PAMCRASH finished"
 /bin/uname -a
 # now sleep until lock file disappears

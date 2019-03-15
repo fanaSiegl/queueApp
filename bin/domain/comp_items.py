@@ -63,6 +63,8 @@ class AbaqusJob(object):
         
         self.description = text
         
+        print '\tJob description set to: %s' % self.description
+        
     #--------------------------------------------------------------------------
     
     def setStartTime(self, startTime):
@@ -201,6 +203,8 @@ class JobExecutionSetting(object):
             params = params[:15]
             
         self.additionalSolverParams = params
+        
+        print '\tAdditional solver parameters set to: %s' % self.additionalSolverParams
     
 #==============================================================================
 
@@ -238,8 +242,7 @@ class BaseExecutionProfileType(object):
 
     def _setInputFile(self):
         
-        inpSelector = bi.InputFileSelector(
-            self.parentApplication, self.parentApplication.workDir)
+        inpSelector = bi.InputFileSelector(self.parentApplication)
         self.inpFileNames = inpSelector.getSelection()
         
         self.job.setInpFile(self.inpFileNames[0])
@@ -249,19 +252,19 @@ class BaseExecutionProfileType(object):
         
         # in case of restart read
         if self.job.inpFile.subAllFiles:
-            inpSelector = bi.RestartInputFileSelector(
-                self.parentApplication, self.parentApplication.workDir)
+            inpSelector = bi.RestartInputFileSelector(self.parentApplication)
             restartInpFileName = inpSelector.getSelection()
             
             self.job.setRestartInpFile(restartInpFileName)
             
             print '\tSelected restart file: %s' % restartInpFileName
-            
+                    
     #--------------------------------------------------------------------------
-    
+
     def _setLicenseServer(self):
-        
+                        
         licenseSelector = bi.LicenseServerSelector(self.parentApplication)
+        licenseSelector.DFT_OPTION_INDEX = self.getDftLicenseServerOption()
         licenseServer = licenseSelector.getSelection()
         
         self.jobSettings.setLicenseServer(licenseServer)
@@ -280,6 +283,7 @@ class BaseExecutionProfileType(object):
     def _setExecutionServer(self):
         
         hostSelector = bi.ExecutionServerSelector(self.parentApplication)
+        hostSelector.DFT_OPTION_INDEX = self.getDftExectionServerOption()
         executionServer = hostSelector.getSelection()
         
         self.jobSettings.setExecutionServer(executionServer)
@@ -310,44 +314,43 @@ class BaseExecutionProfileType(object):
     #--------------------------------------------------------------------------
     
     def _setNumberOfCores(self):
-                        
+        
+        minValue, maxValue, dftValue = self.getDftNoOfCores()
+        
         numberOfCores = bi.BaseDataSelector.getIntInput('Choose the number of CPU', 
             'Enter number of CPU cores [max %s, enter=%s]: ' % (
-                self.jobSettings.executionServer.NO_OF_CORES, self.jobSettings.executionServer.getDftCoreNumber()),
-            maxValue=self.jobSettings.executionServer.NO_OF_CORES,
-            minValue=1,
-            dftValue=self.jobSettings.executionServer.getDftCoreNumber())
+                maxValue, dftValue),
+            minValue, maxValue, dftValue)
         
         self.job.setNumberOfCores(numberOfCores)
     
     #--------------------------------------------------------------------------
     
     def _setNumberOfGPUCores(self):        
+                
+        minValue, maxValue, dftValue = self.getDftNoOfGpus()
         
-        # skip an option to chose GPU for explicit calculation
-        if self.job.inpFile.dynamicsExplicit:
-            self.job.setNumberOfGPUCores(0)
-            print "\tGPGPU acceleration is NOT AVAILABLE"
-            return
-        elif self.jobSettings.executionServer.NO_OF_GPU == 0:
-            print "\tGPGPU acceleration is NOT AVAILABLE"
-            return
-        
-        numberOfGPUCores = bi.BaseDataSelector.getIntInput('Choose the number of GPU', 
-            'Enter number of NVIDIA GPU acceleration [max %s, enter=%s]: ' % (
-                self.jobSettings.executionServer.NO_OF_GPU, 0),
-            dftValue=0,
-            maxValue=self.jobSettings.executionServer.NO_OF_GPU)
+        if maxValue > 0:
+            numberOfGPUCores = bi.BaseDataSelector.getIntInput('Choose the number of GPU', 
+                'Enter number of NVIDIA GPU acceleration [max %s, enter=%s]: ' % (
+                    maxValue, dftValue),
+                dftValue=dftValue,
+                maxValue=maxValue)
+        else:
+            numberOfGPUCores = 0
         
         self.job.setNumberOfGPUCores(numberOfGPUCores)
             
     #--------------------------------------------------------------------------
     
     def _setJobPriority(self):        
-                
+        
+        minValue, maxValue, dftValue = self.getDftJobPriority()
+        
         priority = bi.BaseDataSelector.getIntInput('Choose job priority', 
-            'Enter priority in the queue [40-60, enter=%s]: ' % self.job.DFT_PRIORITY,
-            minValue=40, maxValue=60, dftValue=self.job.DFT_PRIORITY)
+            'Enter priority in the queue [%s-%s, enter=%s]: ' % (
+                minValue, maxValue, dftValue),
+            minValue=minValue, maxValue=maxValue, dftValue=dftValue)
           
         self.job.setPriority(priority)    
     
@@ -361,6 +364,48 @@ class BaseExecutionProfileType(object):
             'Specify more job parameters [15 characters, enter=none]: ', '')
         
         self.jobSettings.setAdditionalSolverParams(params)
+    
+    #--------------------------------------------------------------------------
+
+    def getDftLicenseServerOption(self):
+                
+        return bi.LicenseServerSelector.DFT_OPTION_INDEX
+
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfCores(self):   
+    
+        maxValue = self.jobSettings.executionServer.NO_OF_CORES
+        minValue = 1
+        dftValue = self.jobSettings.executionServer.getDftCoreNumber()
+        
+        return minValue, maxValue, dftValue
+    
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfGpus(self):
+    
+        # skip an option to chose GPU for explicit calculation
+        if self.job.inpFile.dynamicsExplicit:
+            print "\tGPGPU acceleration is NOT AVAILABLE"
+            return 0, 0, 0
+        elif self.jobSettings.executionServer.NO_OF_GPU == 0:
+            print "\tGPGPU acceleration is NOT AVAILABLE"
+            return 0, 0, 0
+                
+        return 0, self.jobSettings.executionServer.NO_OF_GPU, 0
+        
+    #--------------------------------------------------------------------------
+    
+    def getDftExectionServerOption(self):
+        
+        return bi.ExecutionServerSelector.DFT_OPTION_INDEX
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftJobPriority(self):
+        
+        return 40, 60, self.job.DFT_PRIORITY
         
 #==============================================================================
 @utils.registerClass
@@ -426,6 +471,27 @@ class DatacheckExecutionProfileType(BaseExecutionProfileType):
     
     def _setJobPriority(self): pass
     
+    #--------------------------------------------------------------------------
+    
+    def getDftNoOfCores(self):
+                        
+        return 1, 1, 1
+
+    #--------------------------------------------------------------------------
+    
+    def getDftExectionServerOption(self):
+        
+        hostSelector = bi.ExecutionServerSelector(self.parentApplication)
+        hosts, infoLines, serverHosts, userHosts, description = hostSelector.getOptions()
+        
+        # check available AP host
+        for host in userHosts:    
+            if host.isUserMachine:
+                return hosts.index(host) + 1
+        
+        return 1
+        
+    
 #==============================================================================
 @utils.registerClass
 class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
@@ -444,30 +510,35 @@ class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
     
     #--------------------------------------------------------------------------
 
-    def _setLicenseServer(self):
+    def getDftLicenseServerOption(self):
         
         freeLicenseServer = bi.BaseLicenseServerType.getFree()
-                
-        licenseSelector = bi.LicenseServerSelector(self.parentApplication)
-        licenseSelector.DFT_OPTION_INDEX = bi.LICENSE_SERVER_TYPES.index(
-            freeLicenseServer) + 1
-        licenseServer = licenseSelector.getSelection()
         
-        self.jobSettings.setLicenseServer(licenseServer)
+        return bi.LICENSE_SERVER_TYPES.index(freeLicenseServer) + 1
+    
+#     #--------------------------------------------------------------------------
+# 
+#     def _setLicenseServer(self):
+#                         
+#         licenseSelector = bi.LicenseServerSelector(self.parentApplication)
+#         licenseSelector.DFT_OPTION_INDEX = self.getDftLicenseServerOption()
+#         licenseServer = licenseSelector.getSelection()
+#         
+#         self.jobSettings.setLicenseServer(licenseServer)
 
     #--------------------------------------------------------------------------
     
-    def _setExecutionServer(self):
+    def getDftExectionServerOption(self):
         
         availableHost = None
         defaultNoOfCores = self._getPreferredNumberOfCpus()
         
         hostSelector = bi.ExecutionServerSelector(self.parentApplication)
-        hosts, infoLines, serverHosts, userHosts = hostSelector.getAvailableHosts()
+        hosts, infoLines, serverHosts, userHosts, description = hostSelector.getOptions()
         
         # check available AP host
-        for host in serverHosts:    
-            if host.freeCpuNo > defaultNoOfCores:
+        for host in serverHosts:
+            if host.freeCpuNo > defaultNoOfCores or defaultNoOfCores >= host.NO_OF_CORES:
                 availableHost = host
                 break
         
@@ -486,27 +557,76 @@ class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
                     availableHost = host
                     break
         
-        # set new default option value
-        hostSelector.DFT_OPTION_INDEX = hosts.index(availableHost) + 1
-        executionServer = hostSelector.getSelection()
-        
-        self.jobSettings.setExecutionServer(executionServer)
+        return hosts.index(availableHost) + 1
+    
+    #--------------------------------------------------------------------------
+    
+#     def _setExecutionServer(self):
+#         
+#         availableHost = None
+#         defaultNoOfCores = self._getPreferredNumberOfCpus()
+#         
+#         hostSelector = bi.ExecutionServerSelector(self.parentApplication)
+#         hosts, infoLines, serverHosts, userHosts = hostSelector.getOptions()
+#         
+#         # check available AP host
+#         for host in serverHosts:    
+#             if host.freeCpuNo > defaultNoOfCores:
+#                 availableHost = host
+#                 break
+#         
+#         # check available user workstation
+#         if availableHost is None:
+#             for host in userHosts:
+#                 if host.isUserMachine:
+#                     if len(host.runningJobs) == 0:
+#                         availableHost = host
+#                     break
+#         
+#         # check first free user workstation
+#         if availableHost is None:
+#             for host in userHosts:
+#                 if len(host.runningJobs) == 0:
+#                     availableHost = host
+#                     break
+#         
+#         # set new default option value
+#         hostSelector.DFT_OPTION_INDEX = hosts.index(availableHost) + 1
+#         executionServer = hostSelector.getSelection()
+#         
+#         self.jobSettings.setExecutionServer(executionServer)
         
     #--------------------------------------------------------------------------
     
-    def _setNumberOfCores(self):
+#     def _setNumberOfCores(self):
+#         
+#         defaultNoOfCores = self._getPreferredNumberOfCpus()
+#         
+#         if defaultNoOfCores > self.jobSettings.executionServer.NO_OF_CORES:
+#             defaultNoOfCores = self.jobSettings.executionServer.NO_OF_CORES
+#                 
+#         numberOfCores = bi.BaseDataSelector.getIntInput('Choose the number of CPU', 
+#             'Enter number of CPU cores [max %s, enter=%s]: ' % (
+#                 self.jobSettings.executionServer.NO_OF_CORES, defaultNoOfCores),
+#             maxValue = self.jobSettings.executionServer.NO_OF_CORES,
+#             minValue = 1,
+#             dftValue = defaultNoOfCores)
+#         
+#         self.job.setNumberOfCores(numberOfCores)
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftNoOfCores(self):
         
         defaultNoOfCores = self._getPreferredNumberOfCpus()
-                
-        numberOfCores = bi.BaseDataSelector.getIntInput('Choose the number of CPU', 
-            'Enter number of CPU cores [max %s, enter=%s]: ' % (
-                self.jobSettings.executionServer.NO_OF_CORES, defaultNoOfCores),
-            maxValue = self.jobSettings.executionServer.NO_OF_CORES,
-            minValue = 1,
-            dftValue = defaultNoOfCores)
         
-        self.job.setNumberOfCores(numberOfCores)
-    
+        if defaultNoOfCores >= self.jobSettings.executionServer.NO_OF_CORES:
+            defaultNoOfCores = self.jobSettings.executionServer.getDftCoreNumber()
+        
+        minValue = 1
+        maxValue = self.jobSettings.executionServer.NO_OF_CORES
+                
+        return minValue, maxValue, defaultNoOfCores
         
 #==============================================================================
 @utils.registerClass
@@ -520,20 +640,34 @@ class ResourcePriorityExecutionProfileType(BaseExecutionProfileType):
 class AbaqusExecutionProfileSelector(bi.BaseDataSelector):
     
     DFT_OPTION_INDEX = 1
+    DESCRIPTION = 'Select execution profile'
+    
     profiles = ABAQUS_EXECUTION_PROFILE_TYPES
     
+    #--------------------------------------------------------------------------
+    
+    def getOptions(self):
+        
+        return [profileType.NAME for profileType in self.profiles]
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+        
+        return self.profiles[index]
+
     #--------------------------------------------------------------------------
 
     def getSelection(self):
         
-        options = [profileType.NAME for profileType in self.profiles]
+        options = self.getOptions()
         
         index = self._getOptionFromList(
-            'Select execution profile',
+            self.DESCRIPTION,
             'Enter execution profile number [enter=%s]: ' % self.DFT_OPTION_INDEX,
             options)
             
-        return self.profiles[index]
+        return self.indexToItem(index)
         
 #==============================================================================
 @utils.registerClass
@@ -557,8 +691,7 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
 
     def _setInputFile(self):
         
-        inpSelector = bi.PamcrashInputFileSelector(
-            self.parentApplication, self.parentApplication.workDir)
+        inpSelector = bi.PamcrashInputFileSelector(self.parentApplication)
         self.inpFileNames = inpSelector.getSelection()
         
         self.job.setInpFile(self.inpFileNames[0])
@@ -573,11 +706,9 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
         bi.BaseDataSelector.printSelectionTitle('Available license servers')
         
         licenseServer = bi.PamCrashLicenseServerType
-        status = licenseServer.getTokenStatus()
         
-        print '%s %s license (free tokens: %s/%s)' % (
-                licenseServer.LICENSE_TYPE.NAME, licenseServer.NAME, status['free'], status['total'])
-        
+        print licenseServer.toOptionLine()
+       
         self.jobSettings.setLicenseServer(licenseServer)
 
     #--------------------------------------------------------------------------
@@ -599,24 +730,61 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
                
     #--------------------------------------------------------------------------
     
-    def _setNumberOfGPUCores(self):        
+#     def _setNumberOfGPUCores(self):        
+#         
+#         # skip an option to chose GPU for explicit calculation
+#         if self.job.inpFile.analysisType == ei.AnalysisTypes.EXPLICIT:
+#             self.job.setNumberOfGPUCores(0)
+#             print "\tGPGPU acceleration is NOT AVAILABLE"
+#             return
+#         elif self.jobSettings.executionServer.NO_OF_GPU == 0:
+#             print "\tGPGPU acceleration is NOT AVAILABLE"
+#             return
+#         
+#         numberOfGPUCores = bi.BaseDataSelector.getIntInput('Choose the number of GPU', 
+#             'Enter number of NVIDIA GPU acceleration [max %s, enter=%s]: ' % (
+#                 self.jobSettings.executionServer.NO_OF_GPU, 0),
+#             dftValue=0,
+#             maxValue=self.jobSettings.executionServer.NO_OF_GPU)
+#         
+#         self.job.setNumberOfGPUCores(numberOfGPUCores)
+
+    #--------------------------------------------------------------------------
+
+    def _getPreferredNumberOfCpus(self):
         
+        status = self.jobSettings.licenseServer.getTokenStatus()
+        defaultNoOfCores = self.jobSettings.licenseServer.getNoOfCpus(int(status['free']))
+        
+        return defaultNoOfCores
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftNoOfCores(self):
+        
+        defaultNoOfCores = self._getPreferredNumberOfCpus()
+        
+        if defaultNoOfCores >= self.jobSettings.executionServer.NO_OF_CORES:
+            defaultNoOfCores = self.jobSettings.executionServer.getDftCoreNumber()
+        
+        minValue = 1
+        maxValue = self.jobSettings.executionServer.NO_OF_CORES
+                
+        return minValue, maxValue, defaultNoOfCores
+    
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfGpus(self):
+    
         # skip an option to chose GPU for explicit calculation
         if self.job.inpFile.analysisType == ei.AnalysisTypes.EXPLICIT:
-            self.job.setNumberOfGPUCores(0)
             print "\tGPGPU acceleration is NOT AVAILABLE"
-            return
+            return 0, 0, 0
         elif self.jobSettings.executionServer.NO_OF_GPU == 0:
             print "\tGPGPU acceleration is NOT AVAILABLE"
-            return
-        
-        numberOfGPUCores = bi.BaseDataSelector.getIntInput('Choose the number of GPU', 
-            'Enter number of NVIDIA GPU acceleration [max %s, enter=%s]: ' % (
-                self.jobSettings.executionServer.NO_OF_GPU, 0),
-            dftValue=0,
-            maxValue=self.jobSettings.executionServer.NO_OF_GPU)
-        
-        self.job.setNumberOfGPUCores(numberOfGPUCores)
+            return 0, 0, 0
+                
+        return 0, self.jobSettings.executionServer.NO_OF_GPU, 0
         
 #==============================================================================
 @utils.registerClass
