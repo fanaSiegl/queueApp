@@ -332,6 +332,8 @@ class InputFileSelectorWidget(QtGui.QWidget):
         if len(self.items) == 1:
             defaultItem = self.items[0]
             defaultItem.setCheckState(2)
+            
+            self.valueChanged()
     
     #---------------------------------------------------------------------------
     

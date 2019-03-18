@@ -45,9 +45,6 @@ from domain import enum_items as ei
 from presentation import comp_widgets as cw
 from presentation import base_widgets as bw
 
-#==============================================================================
-
-DEBUG = 1
 
 #==============================================================================
 
@@ -58,6 +55,7 @@ class QabaException(Exception): pass
 class QueueApplication(QtGui.QApplication):
     
     APPLICATION_NAME = 'queue application'
+    DEBUG = 1
     
     def __init__(self):
         
@@ -281,7 +279,7 @@ class Qaba(object):
             newJob.executableFile.save()
             self.jobs.append(object)
         
-        if DEBUG:
+        if self.DEBUG:
             print 'qsub %s' % newJob.executableFile.outputFileName
         else:
             utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
@@ -370,7 +368,7 @@ def main():
         sys.exit(app.exec_())
     except Exception as e:
         print str(e)
-        if DEBUG:
+        if app.DEBUG:
             traceback.print_exc()
      
         
