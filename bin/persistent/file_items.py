@@ -253,7 +253,7 @@ class AbaqusJobExecutableFile(object):
         content = '#!/bin/bash\n'
         content += '#$ -hard -l %s\n' % self._getJobFeatures()
         content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
-        content += '#$ -soft -q %s\n' % self.jobSettings.executionServer.fullName
+        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
         content += '#$ -cwd \n'
         content += '#$ -j y\n'
         content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
@@ -340,7 +340,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         content = '#!/bin/bash\n'
         content += '#$ -hard -l %s\n' % self._getJobFeatures()
         content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
-        content += '#$ -soft -q %s\n' % self.jobSettings.executionServer.fullName
+        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
         content += '#$ -cwd -V\n'
         content += '#$ -j y\n'
         content += '#$ -N %s\n' % self.parentJob.inpFile.baseName

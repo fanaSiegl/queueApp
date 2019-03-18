@@ -182,9 +182,10 @@ class BaseSubmitWidget(QtGui.QWidget):
             newJob.executableFile.save()
             self.jobs.append(object)
             
-            print newJob.executableFile.getContent()
-            
-#             utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
+            if self.parentApplication.DEBUG:
+                print newJob.executableFile.getContent()
+            else:
+                utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
                 
     #--------------------------------------------------------------------------
 

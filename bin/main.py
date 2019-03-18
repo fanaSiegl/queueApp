@@ -280,8 +280,11 @@ class Qaba(object):
             newJob.setExecutableFile(newJob.EXECUTABLE_FILE_TYPE(self, newJob))
             newJob.executableFile.save()
             self.jobs.append(object)
-            
-#             utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
+        
+        if DEBUG:
+            print 'qsub %s' % newJob.executableFile.outputFileName
+        else:
+            utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
 
     #--------------------------------------------------------------------------
     
