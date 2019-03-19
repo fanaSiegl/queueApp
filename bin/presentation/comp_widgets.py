@@ -70,9 +70,7 @@ class CentralWidget(QtGui.QWidget):
         for submitWidgetType in SUBMIT_WIDGET_TYPES:
             submitWidget = submitWidgetType(self)
             self.tabWidget.addTab(submitWidget, submitWidget.NAME)
-            
-        
-    
+                
     #--------------------------------------------------------------------------
 
     def _setupConnections(self):
@@ -109,11 +107,12 @@ class QueueWidget(QtGui.QWidget):
                 
         self.queueListWidget.clear()
         
-        for job in self.queue.jobs.values():
-                    
+        for job in self.queue.jobs:
             newItem = bw.QueueJobListWidgetItem(job)
-                         
+            
             self.queueListWidget.addItem(newItem)
+            
+            
      
 #===============================================================================
 

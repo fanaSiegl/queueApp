@@ -113,7 +113,7 @@ class MainWindow(QtGui.QMainWindow):
     WIDTH = 1300
     HEIGHT = 700
 
-    STATUSBAR_MESSAGE_DURATION = 5000
+    STATUSBAR_MESSAGE_DURATION = 2000
         
     def __init__(self, parentApplication):
         super(MainWindow, self).__init__()

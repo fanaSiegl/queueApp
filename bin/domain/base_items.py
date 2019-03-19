@@ -1076,7 +1076,8 @@ class Resources(object):
     def updateState(cls):
         
         cls._setupJobsInQueue()
-        cls.updateHostStat()
+        cls._updateHostStat()
+        cls._getTokenStatus()
         
     #--------------------------------------------------------------------------
     @classmethod
@@ -1090,7 +1091,7 @@ class Resources(object):
         
     #--------------------------------------------------------------------------
     @classmethod
-    def updateHostStat(cls):
+    def _updateHostStat(cls):
         
         cls._hostsStat = xmlio.GridEngineInterface.getHostsStat()
         
@@ -1216,12 +1217,23 @@ class Resources(object):
     def _setupJobsInQueue(cls):
         
         jobAttributes = xmlio.GridEngineInterface.getQueueStat()
-        jobAttributes.extend(cls._getOutOfQueueJobsStat())
+        allLicenseTakingJobs = cls._getOutOfQueueJobsStat()
+#         jobAttributes.extend(cls._getOutOfQueueJobsStat())
         
         # always clear content
-        cls.jobsInQueue = dict()
+        cls.jobsInQueue.clear()
         uniqueJobTags = list()
         for jobAttribute in jobAttributes: 
+            job = RunningJob(jobAttribute)
+            
+            # check duplicate jobs
+            jobTag = job['JB_owner']+job['state']+str(job['queue_name'])+str(job['hard_request'])
+            
+#             if jobTag not in uniqueJobTags:
+            cls.jobsInQueue[job.id] = job
+            uniqueJobTags.append(jobTag)
+        
+        for jobAttribute in allLicenseTakingJobs: 
             job = RunningJob(jobAttribute)
             
             # check duplicate jobs
@@ -1230,6 +1242,7 @@ class Resources(object):
             if jobTag not in uniqueJobTags:
                 cls.jobsInQueue[job.id] = job
                 uniqueJobTags.append(jobTag)
+        
     
     #--------------------------------------------------------------------------
     @classmethod
@@ -1384,7 +1397,15 @@ class Queue(object):
     
     def updateState(self):
         
-        self.jobs = self.resources.jobsInQueue
+        self.jobs = list()
+        
+        for job in self.resources.jobsInQueue.values():
+            if job['state'] == 'r':
+                self.jobs.insert(0, job)
+            else:
+                self.jobs.append(job)
+        
+#         self.jobs = self.resources.jobsInQueue
         
 #         jobAttributes = xmlio.GridEngineInterface.getQueueStat()
 #         
@@ -1411,7 +1432,7 @@ class Queue(object):
         string = self.getColumnLabels()
         string += '\n'+ 150*'-'
         
-        for job in self.jobs.values():
+        for job in self.jobs:
             string += job.toString()
         
         return string
