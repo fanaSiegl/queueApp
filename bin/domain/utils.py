@@ -106,13 +106,26 @@ def initiateLogging(parentApplication=None, level=logging.DEBUG):
     if not os.path.exists(userHome):
         os.makedirs(userHome)
     
+    baseLoggingFormat = '%(asctime)s - %(levelname)s - %(message)s'
     logging.basicConfig(
         filename=os.path.join(userHome, LOG_FILE),
-        format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p',
+        format=baseLoggingFormat, datefmt='%d/%m/%Y %I:%M:%S %p',
         level=logging.DEBUG)
     
     revision, modifiedBy, lastModified = getVersionInfo()
     userName, machine, email = getUserInfo()
+        
+    rootLogger = logging.getLogger()
+    
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logging.Formatter('\t%(message)s'))
+    consoleHandler.setLevel(level)
+    rootLogger.addHandler(consoleHandler)
+    
+    generalDebugHandler = logging.FileHandler(os.path.join(PATH_RES, LOG_FILE))
+    generalDebugHandler.setFormatter(logging.Formatter(baseLoggingFormat))
+    generalDebugHandler.setLevel(logging.DEBUG)
+    rootLogger.addHandler(generalDebugHandler)
     
     logging.info(40*'#')
     if parentApplication is not None:
@@ -121,14 +134,5 @@ def initiateLogging(parentApplication=None, level=logging.DEBUG):
         logging.info('User:     %s' % userName)
         logging.info('Machine:  %s' % machine)
         logging.info(40*'#')
-    
-    rootLogger = logging.getLogger()
-    
-    consoleHandler = logging.StreamHandler()
-    consoleHandler.setFormatter(logging.Formatter('\t%(message)s'))
-    consoleHandler.setLevel(level)
-    rootLogger.addHandler(consoleHandler)
-    
-    
         
 #==============================================================================

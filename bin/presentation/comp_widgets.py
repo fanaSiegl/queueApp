@@ -29,6 +29,7 @@ def saveExecute(method, *args):
         try:
             method(*args)
         except Exception as e:
+            logging.error(str(e))
             traceback.print_exc()
             parentApplication.restoreOverrideCursor()
             

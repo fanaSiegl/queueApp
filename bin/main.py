@@ -399,7 +399,7 @@ def main():
         app = QueueApplication()
         sys.exit(app.exec_())
     except Exception as e:
-        print str(e)
+        logging.error(str(e))
         if DEBUG:
             traceback.print_exc()
      
