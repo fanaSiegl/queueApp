@@ -7,6 +7,8 @@ import glob
 
 from PyQt4 import QtCore, QtGui
 
+# from domain import base_items as bi
+
 #==============================================================================
 
 class SignalGenerator(QtCore.QTimer):
@@ -204,19 +206,19 @@ class WorkingDirectorySelectorWidget(QtGui.QWidget):
         
         self.selectorItem = selectorItem
         
-        self.setLayout(QtGui.QVBoxLayout())
+        self.setLayout(QtGui.QHBoxLayout())
         
-        groupLayout = QtGui.QHBoxLayout()
-        group = QtGui.QGroupBox('Select working directory')
-        group.setLayout(groupLayout)
+#         groupLayout = QtGui.QHBoxLayout()
+#         group = QtGui.QGroupBox('Select working directory')
+#         group.setLayout(groupLayout)
         
         self.lineEdit = QtGui.QLineEdit()
         self.openButton = QtGui.QPushButton('Browse') 
         
-        groupLayout.addWidget(QtGui.QLabel('Select working directory'))
-        groupLayout.addWidget(self.lineEdit)
-        groupLayout.addWidget(self.openButton)
-        self.layout().addWidget(group)
+        self.layout().addWidget(QtGui.QLabel('Select working directory'))
+        self.layout().addWidget(self.lineEdit)
+        self.layout().addWidget(self.openButton)
+#         self.layout().addWidget(group)
         
         self.openButton.released.connect(self.openFile)
         
@@ -269,13 +271,13 @@ class InputFileSelectorWidget(QtGui.QWidget):
         group = QtGui.QGroupBox('Select input file(s)')
         group.setLayout(groupLayout)
         
+        self.workingDirectorySelectorWidget = WorkingDirectorySelectorWidget(self.selectorItem)
         self.listWidget = QtGui.QListWidget()
         
+        groupLayout.addWidget(self.workingDirectorySelectorWidget)
         groupLayout.addWidget(self.listWidget)
         self.layout().addWidget(group)
                 
-#         self.listWidget.currentRowChanged.connect(self.valueChanged)
-        
         # buttons
         self.checkAllButton = QtGui.QPushButton('Check all')
         self.checkNoneButton = QtGui.QPushButton('Check none')
@@ -295,6 +297,8 @@ class InputFileSelectorWidget(QtGui.QWidget):
         self.checkAllButton.released.connect(self._checkAll)
         self.checkNoneButton.released.connect(self._checkNone)
         self.listWidget.itemClicked.connect(self.valueChanged)
+        
+        self.workingDirectorySelectorWidget.changed.connect(self.findInputFiles)
     
     #---------------------------------------------------------------------------
     
@@ -353,6 +357,16 @@ class InputFileSelectorWidget(QtGui.QWidget):
     def valueChanged(self):
         
         self.changed.emit(self.getSelection())
+    
+    #--------------------------------------------------------------------------
+
+    def findInputFiles(self, projectDir):
+
+        self.selectorItem.parentApplication.setWorkDir(projectDir)
+        
+        self.workingDirectorySelectorWidget.lineEdit.setText(projectDir)
+        
+        self.setupInputFiles()
 
 #=============================================================================
 
@@ -645,40 +659,55 @@ class BaseListWidgetItem(QtGui.QListWidgetItem):
 #=============================================================================
 
 class QueueJobListWidgetItem(BaseListWidgetItem):
+    
+    def __init__(self, dataItem):
+        super(QueueJobListWidgetItem, self).__init__(dataItem)
         
+        
+        if 'abaqus' in self.dataItem.licenceServer.CODE:
+            self.setTextColor(QtGui.QColor("blue"))
+        elif 'pamcrash' in self.dataItem.licenceServer.CODE:
+            self.setTextColor(QtGui.QColor("green"))
+        
+        if self.dataItem['JB_name'] == self.dataItem.OUT_OF_THE_QUEUE_NAME:
+            self.setTextColor(QtGui.QColor("red"))
+            
     #------------------------------------------------------------------------------ 
     
     def openContextMenu(self, parentWidget):
         
         menu = QtGui.QMenu()
-#         separateMenu = menu.addMenu("Separate material definition")
         
         jobInfoAction = menu.addAction('Job info')
-        jobKillAction = menu.addAction('Kill')
+        jobKillAction = menu.addAction('Terminate')
         
         jobInfoAction.triggered.connect(self.jobInfo)
-        jobKillAction.triggered.connect(self.jobKill)
+        jobKillAction.triggered.connect(self.jobTerminate)
         
-#         for stateVariable in ei.MATERIAL_SPLITTER_STATE_VARIABLES:
-#             tempSepAction = separateMenu.addAction(stateVariable)
-#             tempSepAction.triggered.connect(
-#                 #lambda: self.separateMaterial(parentWidget, stateVariable))
-#                 partial(self.separateMaterial, parentWidget, stateVariable))
-            
+        # check autority
+        if parentWidget.parentApplication.userName != self.dataItem['JB_owner']:
+            jobKillAction.setEnabled(False)
+        elif self.dataItem['JB_name'] == self.dataItem.OUT_OF_THE_QUEUE_NAME:
+            jobKillAction.setEnabled(False)
+                    
         menu.exec_(QtGui.QCursor.pos())
     
     #------------------------------------------------------------------------------ 
     
-    def jobKill(self):
+    def jobTerminate(self):
         
-        print 'kill job', self.dataItem
+        status = self.dataItem.terminate()
+        
+        QtGui.QMessageBox.information(None, 'Terminate job %s info' % self.dataItem.id,
+                str(status))
     
     #------------------------------------------------------------------------------ 
     
     def jobInfo(self):
         
-        print 'Info job', self.dataItem
-    
+        QtGui.QMessageBox.information(None, 'Job %s info' % self.dataItem.id,
+                str(self.dataItem.getTooltip()))
+        
     #------------------------------------------------------------------------------ 
     
 #     def separateMaterial(self, parentWidget, stateVariable):

@@ -10,7 +10,7 @@ from PyQt4 import QtCore, QtGui
 from domain import utils
 from domain import base_items as bi
 from domain import comp_items as ci
-# import dialogs
+from domain import enum_items as ei
 import base_widgets as bw
 
 #===============================================================================
@@ -127,10 +127,10 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.parentCentralWidget = parentCentralWidget 
         self.parentApplication = parentCentralWidget.parentApplication
         
-#         self.workDir = '/data/fem/users/siegl/eclipse/qaba/res/test_files/ABAQUS'#
+#         self.workDir = '/data/fem/users/siegl/eclipse/qaba/res/test_files/ABAQUS'
         self.workDir = os.getcwd()
         
-        self.jobs = list()
+#         self.jobs = list()
         self.profile = None
         
         self._setupWidgets()
@@ -143,11 +143,13 @@ class BaseSubmitWidget(QtGui.QWidget):
     
     def _initiateOptions(self):
         
-        self._findInputFiles(self.getWorkDir())
+#         self._findInputFiles(self.getWorkDir())
         
         self.profileSelectorWidget.setupOptions()
         self.licenseServerSelectorWidget.setupOptions()
 #         self.executionServerSelectorWidget.setupOptions()
+        
+        self._findInputFiles(self.getWorkDir())
         
         self.licenseServerSelectorWidget.setDefaultOption(
             self.profile.getDftLicenseServerOption())
@@ -180,7 +182,28 @@ class BaseSubmitWidget(QtGui.QWidget):
             newJob.setInpFile(inpFileName)
             newJob.setExecutableFile(newJob.EXECUTABLE_FILE_TYPE(self, newJob))
             newJob.executableFile.save()
-            self.jobs.append(object)
+#             self.jobs.append(newJob)
+            
+            # in case of restart read
+            if newJob.inpFile.subAllFiles:
+                restartInpFileName = QtGui.QFileDialog.getOpenFileName(self,
+                    'Select restart input file', newJob.inpFile.dirName,
+                     filter = "Input file for analysis: '%s' (*%s)" % (
+                        newJob.inpFile.baseName, ei.FileExtensions.ABAQUS_INPUT))
+                 
+                if not restartInpFileName:
+                    raise bi.DataSelectorException('No restart file selected!')
+                
+                print '\tSelected restart file: %s' % restartInpFileName
+                         
+                info = newJob.setRestartInpFile(str(restartInpFileName))
+                print info
+                message = 'Restart files status:'
+                for baseName, status in info.iteritems():
+                    message += '\n%s: %s' % (baseName, status)
+                
+                self.parentApplication.showInfoMessage(message)                
+                
             
             if self.parentApplication.DEBUG:
                 print newJob.executableFile.getContent()
@@ -208,9 +231,9 @@ class BaseSubmitWidget(QtGui.QWidget):
         
         # add selectors        
         # right pane
-        selectorItem = bi.InputFileSelector(self)
-        self.workingDirectorySelectorWidget = bw.WorkingDirectorySelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.workingDirectorySelectorWidget)
+#         selectorItem = bi.InputFileSelector(self)
+#         self.workingDirectorySelectorWidget = bw.WorkingDirectorySelectorWidget(selectorItem)
+#         rightPaneWidget.layout().addWidget(self.workingDirectorySelectorWidget)
         
         selectorItem = ci.AbaqusExecutionProfileSelector(self)
         self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
@@ -277,7 +300,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.solverVersionSelectorWidget.changed.connect(self._setSolverVersion)
         self.licenseServerSelectorWidget.changed.connect(self._setupLicenseServer)
         self.executionServerSelectorWidget.changed.connect(self._setExecutionServer)
-        self.workingDirectorySelectorWidget.changed.connect(self._findInputFiles)
+#         self.workingDirectorySelectorWidget.changed.connect(self._findInputFiles)
         
         self.inputFileSelectorWidget.changed.connect(self._setupInputFiles)
         
@@ -291,13 +314,13 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.submitButton.released.connect(self.submit)
         
     #--------------------------------------------------------------------------
-
+ 
     def _findInputFiles(self, projectDir):
-
-        self.setWorkDir(projectDir)
-        
-        self.workingDirectorySelectorWidget.lineEdit.setText(projectDir)
-        
+ 
+#         self.setWorkDir(projectDir)
+         
+        self.inputFileSelectorWidget.findInputFiles(projectDir)
+         
         self.inputFileSelectorWidget.setupInputFiles()
             
     #--------------------------------------------------------------------------
@@ -308,7 +331,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         
         if len(inputFiles) > 0:
             self.profile.job.setInpFile(inputFiles[0])
-                
+                            
             # check analysis type
             self.noOfGpusSelectorWidget.setDefaultOption(*self.profile.getDftNoOfGpus())
         else:

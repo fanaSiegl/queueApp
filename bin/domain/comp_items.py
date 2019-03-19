@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import copy
+import shutil
 
 import utils
 import base_items as bi
@@ -53,6 +54,24 @@ class AbaqusJob(object):
     def setRestartInpFile(self, inpFileName):
         
         self.restartInpFile = fi.AbaqusInpFile(inpFileName)
+        fileNames = self.restartInpFile.getExistingAnalysisFileNames()
+        
+        info = dict()
+        for fileName in fileNames:
+            baseName = os.path.basename(fileName)
+            destName = os.path.join(self.inpFile.dirName, baseName)
+            
+            if os.path.exists(destName):
+#                 raise bi.InputFileSelector(
+                print 'File for restart already exists in the project folder! Skipping the copy process.'
+                info[baseName] = 'File already present.'
+            else:
+                print '\tCopying "%s" file for restart to: "%s"' % (
+                    baseName, destName)                
+                shutil.copy(fileName, destName)
+                info[baseName] = 'File copied.'
+        
+        return info
                 
     #--------------------------------------------------------------------------
     
@@ -250,14 +269,23 @@ class BaseExecutionProfileType(object):
         print '\tSelected file(s): %s' % ', '.join([
             os.path.basename(inpFileName) for inpFileName in self.inpFileNames])
         
-        # in case of restart read
-        if self.job.inpFile.subAllFiles:
-            inpSelector = bi.RestartInputFileSelector(self.parentApplication)
-            restartInpFileName = inpSelector.getSelection()
+        filesNeedingRestart = list()
+        for inpFileName in self.inpFileNames:
+            inpFile = fi.AbaqusInpFile(inpFileName)
+            if inpFile.subAllFiles:
+                filesNeedingRestart.append(inpFile)
+        
+        if len(filesNeedingRestart) > 0:
+            raise bi.DataSelectorException('Use GUI version to handle restart simulation option.')
             
-            self.job.setRestartInpFile(restartInpFileName)
-            
-            print '\tSelected restart file: %s' % restartInpFileName
+#         # in case of restart read
+#         if self.job.inpFile.subAllFiles:
+#             inpSelector = bi.RestartInputFileSelector(self.parentApplication)
+#             restartInpFileName = inpSelector.getSelection()
+#             
+#             self.job.setRestartInpFile(restartInpFileName)
+#             
+#             print '\tSelected restart file: %s' % restartInpFileName
                     
     #--------------------------------------------------------------------------
 

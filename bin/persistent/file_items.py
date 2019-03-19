@@ -5,6 +5,7 @@
 
 import os
 import sys
+import glob
 from string import Template
 
 from domain import enum_items as ei
@@ -20,7 +21,10 @@ class PamCrashInpFileException(Exception): pass
 #==============================================================================
 
 class AbaqusInpFile(object):
-        
+    
+    ANALYSIS_CONTENT_FILE_EXTS = ['*.res', '*.mdl', '*.stt', '*.prt', '*.odb',
+        '*.abq', '*.pac', '*.sel', '*.sim']
+    
     def __init__(self, inpFileName):
 
         self.fileName = inpFileName
@@ -39,7 +43,7 @@ class AbaqusInpFile(object):
         self._analyseContent()
         self._checkIncludedFiles(self.includeFiles)
         self._checkIncludedFiles(self.fillFiles)
-        
+                
     #-------------------------------------------------------------------------
     
     def _analyseContent(self):
@@ -94,7 +98,14 @@ class AbaqusInpFile(object):
                 raise AbaqusInpFileException(message)
                    
     #-------------------------------------------------------------------------
-
+    
+    def getExistingAnalysisFileNames(self):
+        
+        fileNames = [self.fileName, ]
+        for fileExt in self.ANALYSIS_CONTENT_FILE_EXTS:
+            fileNames.extend(glob.glob(os.path.join(self.dirName, fileExt)))
+        
+        return fileNames
     
     #-------------------------------------------------------------------------
 

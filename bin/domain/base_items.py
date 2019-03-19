@@ -1045,9 +1045,11 @@ class Resources(object):
     executionServers = dict()
     availableLicenseServerHosts = dict()
     jobsInQueue = dict()
+#     jobsOutQueue = dict()
     tokenStatus = dict()
     
     _hostsStat = dict()
+    _outOfQueueJobIds = list()
     
 #     def __init__(self):
 #                 
@@ -1091,6 +1093,71 @@ class Resources(object):
     def updateHostStat(cls):
         
         cls._hostsStat = xmlio.GridEngineInterface.getHostsStat()
+        
+    #--------------------------------------------------------------------------
+    @classmethod
+    def _getOutOfQueueJobsStat(cls):
+        
+        '''
+        qhost:
+            hostName = mb-u24.cax.lan
+        
+        qlic -w:
+            pamcrash1  ext.opawar=[33]
+                       ext.opawar@mb-so3=33
+                       stekly=[66]
+            qxt3       bouda@mb-u15=50
+        
+        '''
+        
+        # check jobs running out of the queue
+        stdout, _ = utils.runSubprocess('qlic -w')
+        lines = stdout.splitlines()
+        
+        licenseServerQueueCodes = dict()
+        for licenseServer in LICENSE_SERVER_TYPES:
+            licenseServerQueueCodes[licenseServer.QUEUE_CODE] = licenseServer
+        
+        outOfQueueJobsParams = list()
+        for line in lines:
+            parts = line.split()
+            if len(parts) == 2 and parts[0]:
+                licenseServerQueueCode = parts[0].strip()
+                             
+            # skip different queues
+            if licenseServerQueueCode not in licenseServerQueueCodes:
+                continue
+            
+            # only running jobs
+            if '@' in line:                
+                hostInfo = parts[-1].strip()
+                hostInfoParts = hostInfo.split('@')
+                userName = hostInfoParts[0]
+                host = hostInfoParts[-1]
+                hostParts = host.split('=')
+                noOfTokens = int(hostParts[-1])
+                hostName = hostParts[0] + '.cax.lan'
+                licenseServer = licenseServerQueueCodes[licenseServerQueueCode]
+                
+#                 if hostName in cls._hostsStat:
+                jobId = len(outOfQueueJobsParams)
+                attributes = {
+                    'JB_job_number' : jobId,
+                    'JB_name' : RunningJob.OUT_OF_THE_QUEUE_NAME,
+                    'JB_owner' : userName,
+                    'state' : 'r',
+                    'JB_submission_time' : '-',
+                    'queue_name': licenseServer.CODE + '@' + hostName,
+                    'JAT_prio' : '-',
+                    'full_job_name': 'N/A',
+                    'hard_request' : noOfTokens,
+                    'hard_req_queue' : licenseServer.CODE + '@*',
+                    'JAT_start_time' : '-',
+                    'slots' : '-'}
+                
+                outOfQueueJobsParams.append(attributes)
+        
+        return outOfQueueJobsParams
     
     #-------------------------------------------------------------------------
     @classmethod
@@ -1149,12 +1216,20 @@ class Resources(object):
     def _setupJobsInQueue(cls):
         
         jobAttributes = xmlio.GridEngineInterface.getQueueStat()
+        jobAttributes.extend(cls._getOutOfQueueJobsStat())
         
         # always clear content
         cls.jobsInQueue = dict()
+        uniqueJobTags = list()
         for jobAttribute in jobAttributes: 
             job = RunningJob(jobAttribute)
-            cls.jobsInQueue[job.id] = job
+            
+            # check duplicate jobs
+            jobTag = job['JB_owner']+job['state']+str(job['queue_name'])+str(job['hard_request'])
+            
+            if jobTag not in uniqueJobTags:
+                cls.jobsInQueue[job.id] = job
+                uniqueJobTags.append(jobTag)
     
     #--------------------------------------------------------------------------
     @classmethod
@@ -1192,6 +1267,7 @@ class Resources(object):
 class RunningJob(object):
     
     COLUMNS_WIDTHS = [6, 10, 12, 55, 4, 21, 25, 7, 6]
+    OUT_OF_THE_QUEUE_NAME = 'Out of the queue'
     
     def __init__(self, attributes):
                 
@@ -1271,6 +1347,16 @@ class RunningJob(object):
             string = self.solverType.QUEUE_COLOUR + string + utils.ConsoleColors.ENDC
         
         return '\n'+ string
+    
+    #--------------------------------------------------------------------------
+    
+    def terminate(self):
+        
+        print 'Terminating job: %s' % self.id
+        
+        stdout, _ = utils.runSubprocess('qdel %s' % self.id)
+        
+        return stdout 
         
 #==============================================================================
 

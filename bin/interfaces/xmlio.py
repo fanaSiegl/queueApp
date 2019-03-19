@@ -27,7 +27,10 @@ class GridEngineInterface(object):
     @staticmethod
     def getHostsStat():
         
-        ''' Returns a list of all hosts - execution servers and their'''
+        ''' Returns a list of all hosts - execution servers and their running
+        jobs.
+        
+        '''
         
         stdout, _ = utils.runSubprocess('qhost -j -xml')
                 
@@ -53,8 +56,8 @@ class GridEngineInterface(object):
                 hosts[hostName]['jobs'][jobId] = dict()
                 for jobValueElement in jobElement:
                     jobAttributeName = jobValueElement.attrib['name']
-                    hosts[hostName]['jobs'][jobId][jobAttributeName] = jobValueElement.text
-            
+                    hosts[hostName]['jobs'][jobId][jobAttributeName] = jobValueElement.text            
+        
         return hosts
     
     #--------------------------------------------------------------------------

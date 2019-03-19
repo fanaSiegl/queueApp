@@ -48,6 +48,10 @@ from presentation import base_widgets as bw
 
 #==============================================================================
 
+DEBUG = 1
+
+#==============================================================================
+
 class QabaException(Exception): pass
 
 #=============================================================================
@@ -55,7 +59,7 @@ class QabaException(Exception): pass
 class QueueApplication(QtGui.QApplication):
     
     APPLICATION_NAME = 'queue application'
-    DEBUG = 1
+    DEBUG = DEBUG
     
     def __init__(self):
         
@@ -90,6 +94,13 @@ class QueueApplication(QtGui.QApplication):
                 
         self.mainWindow.centralWidget().queueTabWidget.updateContent()
         self.mainWindow.showStatusMessage('Status updated')
+    
+    #---------------------------------------------------------------------------
+
+    def showInfoMessage(self, message):
+        
+        QtGui.QMessageBox.information(self.mainWindow, '%s' % self.APPLICATION_NAME,
+                str(message))
 
 #===============================================================================
 
@@ -279,7 +290,7 @@ class Qaba(object):
             newJob.executableFile.save()
             self.jobs.append(object)
         
-        if self.DEBUG:
+        if DEBUG:
             print 'qsub %s' % newJob.executableFile.outputFileName
         else:
             utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
@@ -368,7 +379,7 @@ def main():
         sys.exit(app.exec_())
     except Exception as e:
         print str(e)
-        if app.DEBUG:
+        if DEBUG:
             traceback.print_exc()
      
         
