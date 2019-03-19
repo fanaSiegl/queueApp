@@ -8,6 +8,7 @@ import sys
 import time
 import copy
 import shutil
+import logging
 
 import utils
 import base_items as bi
@@ -66,7 +67,7 @@ class AbaqusJob(object):
                 print 'File for restart already exists in the project folder! Skipping the copy process.'
                 info[baseName] = 'File already present.'
             else:
-                print '\tCopying "%s" file for restart to: "%s"' % (
+                print 'Copying "%s" file for restart to: "%s"' % (
                     baseName, destName)                
                 shutil.copy(fileName, destName)
                 info[baseName] = 'File copied.'
@@ -82,7 +83,7 @@ class AbaqusJob(object):
         
         self.description = text
         
-        print '\tJob description set to: %s' % self.description
+        logging.info('Job description set to: %s' % self.description)
         
     #--------------------------------------------------------------------------
     
@@ -90,7 +91,7 @@ class AbaqusJob(object):
         
         self.startTime = startTime
         
-        print '\tJob start time set to: %s' % self.startTime
+        logging.info('Job start time set to: %s' % self.startTime)
     
     #--------------------------------------------------------------------------
     
@@ -98,7 +99,7 @@ class AbaqusJob(object):
         
         self.numberOfCores = numberOfCores
         
-        print '\tNumber of CPU set to: %s' % self.numberOfCores
+        logging.info('Number of CPU set to: %s' % self.numberOfCores)
     
     #--------------------------------------------------------------------------
     
@@ -106,13 +107,13 @@ class AbaqusJob(object):
         
         self.numberOfGPUCores = numberOfGPUCores
         
-        print '\tSelected GPGPU acceleration: %s' % self.numberOfGPUCores
+        logging.info('Selected GPGPU acceleration: %s' % self.numberOfGPUCores)
     
     #--------------------------------------------------------------------------
     
     def setPriority(self, priority):
                 
-        print '\tJob priority set to: %s (-> %s)' % (priority, priority - 100)
+        logging.info('Job priority set to: %s (-> %s)' % (priority, priority - 100))
         
         self.priority = priority - 100
     
@@ -122,7 +123,7 @@ class AbaqusJob(object):
         
         self.solverVersion = solverVersion
         
-        print '\tSelected version: %s' % self.solverVersion
+        logging.info('Selected version: %s' % self.solverVersion)
             
     #--------------------------------------------------------------------------
     
@@ -203,7 +204,7 @@ class JobExecutionSetting(object):
         
         self.licenseServer = licenseServer
         
-        print '\tSelected license: %s' % self.licenseServer.NAME
+        logging.info('Selected license: %s' % self.licenseServer.NAME)
     
     #--------------------------------------------------------------------------
     
@@ -211,19 +212,19 @@ class JobExecutionSetting(object):
         
         self.executionServer = executionServer
         
-        print '\tSelected host: %s' % self.executionServer.name
+        logging.info('Selected host: %s' % self.executionServer.name)
     
     #--------------------------------------------------------------------------
     
     def setAdditionalSolverParams(self, params):
         
         if len(params) > 15:
-            print 'Warning: not all parameters parsed! %s -> %s' % (params, params[:15])
+            logging.warning('Warning: not all parameters parsed! %s -> %s' % (params, params[:15]))
             params = params[:15]
             
         self.additionalSolverParams = params
         
-        print '\tAdditional solver parameters set to: %s' % self.additionalSolverParams
+        logging.info('Additional solver parameters set to: %s' % self.additionalSolverParams)
     
 #==============================================================================
 
@@ -255,7 +256,7 @@ class BaseExecutionProfileType(object):
         self._setJobDescription()
         self._setAdditionalSolverParams()
         
-        print "Info- Required licenses for this job are: %s" % self.job.getTokensRequired()
+        logging.info("Info- Required licenses for this job are: %s" % self.job.getTokensRequired())
         
     #--------------------------------------------------------------------------
 
@@ -266,8 +267,8 @@ class BaseExecutionProfileType(object):
         
         self.job.setInpFile(self.inpFileNames[0])
         
-        print '\tSelected file(s): %s' % ', '.join([
-            os.path.basename(inpFileName) for inpFileName in self.inpFileNames])
+        logging.info('Selected file(s): %s' % ', '.join([
+            os.path.basename(inpFileName) for inpFileName in self.inpFileNames]))
         
         filesNeedingRestart = list()
         for inpFileName in self.inpFileNames:
@@ -415,10 +416,10 @@ class BaseExecutionProfileType(object):
     
         # skip an option to chose GPU for explicit calculation
         if self.job.inpFile.dynamicsExplicit:
-            print "\tGPGPU acceleration is NOT AVAILABLE"
+            logging.info("GPGPU acceleration is NOT AVAILABLE")
             return 0, 0, 0
         elif self.jobSettings.executionServer.NO_OF_GPU == 0:
-            print "\tGPGPU acceleration is NOT AVAILABLE"
+            logging.info("GPGPU acceleration is NOT AVAILABLE")
             return 0, 0, 0
                 
         return 0, self.jobSettings.executionServer.NO_OF_GPU, 0
@@ -724,8 +725,8 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
         
         self.job.setInpFile(self.inpFileNames[0])
         
-        print '\tSelected file(s): %s' % ', '.join([
-            os.path.basename(inpFileName) for inpFileName in self.inpFileNames])
+        logging.info('Selected file(s): %s' % ', '.join([
+            os.path.basename(inpFileName) for inpFileName in self.inpFileNames]))
         
     #--------------------------------------------------------------------------
 
@@ -735,7 +736,7 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
         
         licenseServer = bi.PamCrashLicenseServerType
         
-        print licenseServer.toOptionLine()
+        logging.info(licenseServer.toOptionLine())
        
         self.jobSettings.setLicenseServer(licenseServer)
 
@@ -806,10 +807,10 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
     
         # skip an option to chose GPU for explicit calculation
         if self.job.inpFile.analysisType == ei.AnalysisTypes.EXPLICIT:
-            print "\tGPGPU acceleration is NOT AVAILABLE"
+            logging.info("GPGPU acceleration is NOT AVAILABLE")
             return 0, 0, 0
         elif self.jobSettings.executionServer.NO_OF_GPU == 0:
-            print "\tGPGPU acceleration is NOT AVAILABLE"
+            logging.info("GPGPU acceleration is NOT AVAILABLE")
             return 0, 0, 0
                 
         return 0, self.jobSettings.executionServer.NO_OF_GPU, 0

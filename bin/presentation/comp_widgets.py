@@ -4,6 +4,7 @@
 import os
 import sys
 import traceback
+import logging
 
 from PyQt4 import QtCore, QtGui
 
@@ -194,10 +195,10 @@ class BaseSubmitWidget(QtGui.QWidget):
                 if not restartInpFileName:
                     raise bi.DataSelectorException('No restart file selected!')
                 
-                print '\tSelected restart file: %s' % restartInpFileName
+                logging.debug('Selected restart file: %s' % restartInpFileName)
                          
                 info = newJob.setRestartInpFile(str(restartInpFileName))
-                print info
+                logging.debug(info)
                 message = 'Restart files status:'
                 for baseName, status in info.iteritems():
                     message += '\n%s: %s' % (baseName, status)
@@ -207,7 +208,7 @@ class BaseSubmitWidget(QtGui.QWidget):
             message += 'Submitting job: %s\n' % newJob.inpFile.baseName
             
             if self.parentApplication.DEBUG:
-                print newJob.executableFile.getContent()
+                logging.debug(newJob.executableFile.getContent())
             else:
                 utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
         
@@ -361,7 +362,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.licenseServerSelectorWidget.setDefaultOption(
             self.profile.getDftLicenseServerOption())
         
-        print 'Setting current profile to: %s' % self.profile.NAME
+        logging.debug('Setting current profile to: %s' % self.profile.NAME)
         
     #--------------------------------------------------------------------------
 

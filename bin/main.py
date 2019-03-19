@@ -34,6 +34,7 @@ import sys
 import traceback
 import argparse
 import time
+import logging
 
 from PyQt4 import QtCore, QtGui
 
@@ -68,6 +69,12 @@ class QueueApplication(QtGui.QApplication):
         self.revision, self.modifiedBy, self.lastModified = utils.getVersionInfo()
         self.userName, self.machine, self.email = utils.getUserInfo()
         
+        if DEBUG:
+            level = logging.DEBUG
+        else:
+            level = logging.WARNING
+        utils.initiateLogging(self, level)
+                
         # connect resources
         bi.Resources.initialise()
         self.q = bi.Queue()       
@@ -271,8 +278,12 @@ class MainWindow(QtGui.QMainWindow):
 #==============================================================================
     
 class Qaba(object):
-        
+    
+    APPLICATION_NAME = 'qaba application'
+    
     def __init__(self, args):
+        
+        utils.initiateLogging(self, logging.INFO)
         
         self.workDir = os.getcwd()
         
@@ -321,7 +332,9 @@ class Qaba(object):
 #==============================================================================
     
 class Qpam(Qaba):
-             
+    
+    APPLICATION_NAME = 'qpam application'
+    
     def setProfile(self):
                 
         profileSelector = ci.PamCrashExecutionProfileSelector(self)
@@ -333,7 +346,11 @@ class Qpam(Qaba):
 
 class Queue(object):
     
+    APPLICATION_NAME = 'q application'
+    
     def __init__(self):
+        
+        utils.initiateLogging(self, logging.INFO)
         
         bi.Resources.initialise()
 #         bi.BaseExecutionServerType.connectResources2()

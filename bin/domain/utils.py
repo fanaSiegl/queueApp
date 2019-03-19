@@ -9,6 +9,7 @@ import ConfigParser
 import subprocess
 import getpass
 import socket
+import logging
 
 #==============================================================================
 
@@ -20,6 +21,7 @@ PATH_RES = os.path.normpath(os.path.join(PATH_BIN,'..', 'res'))
 PATH_ICONS = os.path.join(PATH_RES, 'icons')
 
 VERSION_FILE = 'version.ini'
+LOG_FILE = 'queueApp.log'
 
 #==============================================================================
 
@@ -95,4 +97,38 @@ class ConsoleColors:
     GREEN = "\033[0;32m"
     MAGENTA = '\033[0;35m'
 
+#=============================================================================
+
+def initiateLogging(parentApplication=None, level=logging.DEBUG):
+    
+    userHome = os.path.join(os.path.expanduser('~'), '.queueApp')
+    
+    if not os.path.exists(userHome):
+        os.makedirs(userHome)
+    
+    logging.basicConfig(
+        filename=os.path.join(userHome, LOG_FILE),
+        format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p',
+        level=logging.DEBUG)
+    
+    revision, modifiedBy, lastModified = getVersionInfo()
+    userName, machine, email = getUserInfo()
+    
+    logging.info(40*'#')
+    if parentApplication is not None:
+        logging.info('%s started' % parentApplication.APPLICATION_NAME)
+        logging.info('Revision: %s' % revision)
+        logging.info('User:     %s' % userName)
+        logging.info('Machine:  %s' % machine)
+        logging.info(40*'#')
+    
+    rootLogger = logging.getLogger()
+    
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logging.Formatter('\t%(message)s'))
+    consoleHandler.setLevel(level)
+    rootLogger.addHandler(consoleHandler)
+    
+    
+        
 #==============================================================================
