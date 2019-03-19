@@ -91,13 +91,17 @@ class QueueApplication(QtGui.QApplication):
     #---------------------------------------------------------------------------
 
     def _updateQueueStatus(self):
-                
+        
+        bi.Resources.updateState()
+        
         self.mainWindow.centralWidget().queueTabWidget.updateContent()
         self.mainWindow.showStatusMessage('Status updated')
     
     #---------------------------------------------------------------------------
 
     def showInfoMessage(self, message):
+        
+        self.restoreOverrideCursor()
         
         QtGui.QMessageBox.information(self.mainWindow, '%s' % self.APPLICATION_NAME,
                 str(message))

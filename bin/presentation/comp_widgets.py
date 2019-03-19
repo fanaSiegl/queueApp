@@ -177,6 +177,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         if len(self.profile.inpFileNames) == 0:
             raise bi.DataSelectorException('No files selected!')
         
+        message = ''
         for inpFileName in self.profile.inpFileNames:
             newJob = self.profile.job.getCopy()
             newJob.setInpFile(inpFileName)
@@ -204,11 +205,14 @@ class BaseSubmitWidget(QtGui.QWidget):
                 
                 self.parentApplication.showInfoMessage(message)                
                 
+            message += 'Submitting job: %s\n' % newJob.inpFile.baseName
             
             if self.parentApplication.DEBUG:
                 print newJob.executableFile.getContent()
             else:
                 utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
+        
+        self.parentApplication.showInfoMessage(message)
                 
     #--------------------------------------------------------------------------
 

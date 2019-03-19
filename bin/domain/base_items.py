@@ -1343,9 +1343,11 @@ class RunningJob(object):
 #         if self.executionServer is not None:
 #             print self.executionServer.freeCpuNo
         
-        if self.solverType is not None and colour:
+        if self._attributes['JB_name'] == self.OUT_OF_THE_QUEUE_NAME and colour:
+            string = utils.ConsoleColors.FAIL + string + utils.ConsoleColors.ENDC
+        elif self.solverType is not None and colour:
             string = self.solverType.QUEUE_COLOUR + string + utils.ConsoleColors.ENDC
-        
+                
         return '\n'+ string
     
     #--------------------------------------------------------------------------
