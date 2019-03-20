@@ -7,9 +7,9 @@ import os
 import sys
 import glob
 import shutil
-import numpy as np
 import time
 import re
+import logging
 
 import utils
 import enum_items as ei
@@ -831,6 +831,7 @@ class InputFileSelector(BaseDataSelector):
         
         # select input file
         if len(inpFiles) == 0:
+            logging.error("Error: source *%s wasn't found!" % self.FILE_EXT)
             raise DataSelectorException("Error: source *%s wasn't found!" % self.FILE_EXT)
         elif len(inpFiles) == 1:
             return inpFiles
@@ -1242,7 +1243,6 @@ class Resources(object):
             if jobTag not in uniqueJobTags:
                 cls.jobsInQueue[job.id] = job
                 uniqueJobTags.append(jobTag)
-        
     
     #--------------------------------------------------------------------------
     @classmethod

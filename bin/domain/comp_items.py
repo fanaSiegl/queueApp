@@ -260,11 +260,15 @@ class BaseExecutionProfileType(object):
         
     #--------------------------------------------------------------------------
 
-    def _setInputFile(self):
+    def _setInputFile(self, inpFileNames=None):
         
-        inpSelector = bi.InputFileSelector(self.parentApplication)
-        self.inpFileNames = inpSelector.getSelection()
-        
+        # switch between parametric and interactive input
+        if inpFileNames is not None:
+            self.inpFileNames = inpFileNames
+        else:
+            inpSelector = bi.InputFileSelector(self.parentApplication)
+            self.inpFileNames = inpSelector.getSelection()
+                    
         self.job.setInpFile(self.inpFileNames[0])
         
         logging.info('Selected file(s): %s' % ', '.join([
@@ -278,7 +282,7 @@ class BaseExecutionProfileType(object):
         
         if len(filesNeedingRestart) > 0:
             raise bi.DataSelectorException('Use GUI version to handle restart simulation option.')
-            
+#TODO: finish this if it's needed..            
 #         # in case of restart read
 #         if self.job.inpFile.subAllFiles:
 #             inpSelector = bi.RestartInputFileSelector(self.parentApplication)
@@ -291,11 +295,11 @@ class BaseExecutionProfileType(object):
     #--------------------------------------------------------------------------
 
     def _setLicenseServer(self):
-                        
+        
         licenseSelector = bi.LicenseServerSelector(self.parentApplication)
         licenseSelector.DFT_OPTION_INDEX = self.getDftLicenseServerOption()
         licenseServer = licenseSelector.getSelection()
-        
+    
         self.jobSettings.setLicenseServer(licenseServer)
         
     #--------------------------------------------------------------------------
@@ -381,7 +385,7 @@ class BaseExecutionProfileType(object):
                 minValue, maxValue, dftValue),
             minValue=minValue, maxValue=maxValue, dftValue=dftValue)
           
-        self.job.setPriority(priority)    
+        self.job.setPriority(priority)
     
     #--------------------------------------------------------------------------
     

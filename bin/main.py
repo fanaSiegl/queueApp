@@ -283,20 +283,26 @@ class Qaba(object):
     
     def __init__(self, args):
         
-        utils.initiateLogging(self, logging.INFO)
-        
-        self.workDir = os.getcwd()
-        
-        checkProjectPath(self.workDir)
-        
+        self.args = args
         self.jobs = list()
         
+        if DEBUG:
+            level = logging.DEBUG
+        else:
+            level = logging.INFO
+        utils.initiateLogging(self, level)
+                
+        self.setWorkDir(os.getcwd())
+                                
         # initiate resource status
         bi.Resources.initialise()
-#         bi.BaseExecutionServerType.connectResources2()
-                
-        self.profile = self.setProfile()
-        self.profile.runDataSelectionSequence()       
+        
+        paramProvided = self._checkInputArgs()
+        if paramProvided:
+            self.setupFromParameters()
+        else:
+            self.profile = self.setProfile()
+            self.profile.runDataSelectionSequence()       
                 
         for inpFileName in self.profile.inpFileNames:
             newJob = self.profile.job.getCopy()
@@ -305,10 +311,9 @@ class Qaba(object):
             newJob.executableFile.save()
             self.jobs.append(object)
         
-        if DEBUG:
-            print 'qsub %s' % newJob.executableFile.outputFileName
-        else:
-            utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
+            logging.debug('qsub %s' % newJob.executableFile.outputFileName)
+            if not DEBUG:
+                utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
 
     #--------------------------------------------------------------------------
     
@@ -322,12 +327,56 @@ class Qaba(object):
     #---------------------------------------------------------------------------
     
     def setWorkDir(self, path):
+        
         self.workDir = path
+        
+        checkProjectPath(path)
 
     #---------------------------------------------------------------------------
         
     def getWorkDir(self):
         return self.workDir
+    
+    #--------------------------------------------------------------------------
+    
+    def _checkInputArgs(self):
+        
+        if self.args.inpFilePath is None:
+            logging.debug('No input file parameter provided. Switching to interactive interface.')
+            return False
+        else:
+            return True
+            
+    #--------------------------------------------------------------------------
+    
+    def setupFromParameters(self):
+        
+        self.profile = ci.BaseExecutionProfileType(self)
+        
+        # set input file
+        fileNames = [os.path.abspath(fileName) for fileName in self.args.inpFilePath]
+        self.profile._setInputFile(fileNames)
+        
+        # set license server
+        licenseServerNames = [licenseServer.NAME for licenseServer in bi.LICENSE_SERVER_TYPES]
+        licenseServer = bi.LICENSE_SERVER_TYPES[licenseServerNames.index(self.args.license)]
+        self.profile.jobSettings.setLicenseServer(licenseServer)
+        
+        # set solver version
+        self.profile.job.setSolverVersion(self.args.solver)
+        
+        # set execution server
+        executionServerName = self.args.host + '.cax.lan'
+        executionServer = bi.Resources.executionServers[executionServerName]
+        self.profile.jobSettings.setExecutionServer(executionServer)
+        
+        # set job parameters
+        self.profile.job.setDescription(self.args.des)
+        self.profile.job.setStartTime(self.args.start)
+        self.profile.job.setNumberOfCores(self.args.cpu)
+        self.profile.job.setNumberOfGPUCores(self.args.gpu)
+        self.profile.job.setPriority(self.args.prio)
+        self.profile.jobSettings.setAdditionalSolverParams(self.args.param)
 
 #==============================================================================
     
@@ -341,6 +390,37 @@ class Qpam(Qaba):
         profileType = profileSelector.getSelection()
         
         return profileType(self)
+    
+    #--------------------------------------------------------------------------
+    
+    def setupFromParameters(self):
+        
+        self.profile = ci.PamCrashExecutionProfileType(self)
+        
+        # set input file
+        fileNames = [os.path.abspath(fileName) for fileName in self.args.inpFilePath]
+        self.profile.inpFileNames = fileNames
+        self.profile.job.setInpFile(fileNames[0])
+        
+        # set license server
+        licenseServer = bi.PamCrashLicenseServerType
+        self.profile.jobSettings.setLicenseServer(licenseServer)
+        
+        # set solver version
+        self.profile.job.setSolverVersion(ei.PAMCRASH_SOLVER_LIST[0])
+        
+        # set execution server
+        executionServerName = self.args.host + '.cax.lan'
+        executionServer = bi.Resources.executionServers[executionServerName]
+        self.profile.jobSettings.setExecutionServer(executionServer)
+        
+        # set job parameters
+        self.profile.job.setDescription(self.args.des)
+        self.profile.job.setStartTime(self.args.start)
+        self.profile.job.setNumberOfCores(self.args.cpu)
+        self.profile.job.setNumberOfGPUCores(self.args.gpu)
+        self.profile.job.setPriority(self.args.prio)
+        self.profile.jobSettings.setAdditionalSolverParams(self.args.param)
 
 #==============================================================================
 
@@ -376,21 +456,6 @@ def checkProjectPath(path):
     message += '\nUse one of: %s' %  ei.ALLOWED_PROJECT_PATHS
     raise QabaException(message)
     
-#==============================================================================
-
-def getListOfHosts():
-    
-    # initiate resource status
-    bi.Resources.initialise()
-#     bi.BaseExecutionServerType.connectResources2()
-    
-    hosts = list()
-    for licenseServer in bi.LICENSE_SERVER_TYPES:
-        hosts.extend(
-            [currentHost.name for currentHost in licenseServer.getAvailableHosts()])
-    
-    return sorted(set(hosts))
-
 #==============================================================================
 
 def main():

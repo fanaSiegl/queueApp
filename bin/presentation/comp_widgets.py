@@ -164,12 +164,31 @@ class BaseSubmitWidget(QtGui.QWidget):
     
     def setWorkDir(self, path):
         
+        logging.debug('Setting work dir path: "%s"' % path)
+        
         self.workDir = path
+        
+        self._checkProjectPath(path)
 
     #---------------------------------------------------------------------------
         
     def getWorkDir(self):
         return self.workDir
+    
+    #---------------------------------------------------------------------------
+#TODO: this is duplicate to the main.py    
+    def _checkProjectPath(self, path):
+        
+        for allowedPath in ei.ALLOWED_PROJECT_PATHS:
+            if allowedPath in path:
+                return
+        
+        message = 'Current path: "%s" is not valid for job submission!' % path
+        message += '\nUse one of: %s' %  ei.ALLOWED_PROJECT_PATHS
+        
+        logging.error(message)
+        
+        raise bi.DataSelectorException(message)
 
     #---------------------------------------------------------------------------
     @saveExecute
@@ -468,9 +487,9 @@ class PamCrashSubmitWidget(BaseSubmitWidget):
         
         # add selectors        
         # right pane
-        selectorItem = bi.PamcrashInputFileSelector(self)
-        self.workingDirectorySelectorWidget = bw.WorkingDirectorySelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.workingDirectorySelectorWidget)
+#         selectorItem = bi.PamcrashInputFileSelector(self)
+#         self.workingDirectorySelectorWidget = bw.WorkingDirectorySelectorWidget(selectorItem)
+#         rightPaneWidget.layout().addWidget(self.workingDirectorySelectorWidget)
         
         selectorItem = ci.PamCrashExecutionProfileSelector(self)
         self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)

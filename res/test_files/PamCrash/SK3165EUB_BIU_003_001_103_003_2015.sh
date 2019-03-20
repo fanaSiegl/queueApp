@@ -1,13 +1,13 @@
 #!/bin/bash
 #$ -hard -l pamcrash1=38
 #$ -q pamcrash1@*
-#$ -soft -q @mb-so3.cax.lan
+#$ -soft -q pamcrash1@mb-so3.cax.lan
 #$ -cwd -V
 #$ -j y
 #$ -N SK3165EUB_BIU_003_001_103_003_2015
 #$ -p -50
-#$ -ac popis_ulohy=-
-#$ -a 03151431
+#$ -ac popis_ulohy=
+#$ -a 03201350
 #$ -M frantisek.siegl@idiada.cz
 #$ -m bes
 umask 0002

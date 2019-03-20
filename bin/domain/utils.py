@@ -108,7 +108,7 @@ def initiateLogging(parentApplication=None, level=logging.DEBUG):
     
     baseLoggingFormat = '%(asctime)s - %(levelname)s - %(message)s'
     logging.basicConfig(
-        filename=os.path.join(userHome, LOG_FILE),
+        filename=os.path.join(PATH_RES, LOG_FILE),
         format=baseLoggingFormat, datefmt='%d/%m/%Y %I:%M:%S %p',
         level=logging.DEBUG)
     
@@ -117,16 +117,12 @@ def initiateLogging(parentApplication=None, level=logging.DEBUG):
         
     rootLogger = logging.getLogger()
     
-    consoleHandler = logging.StreamHandler()
-    consoleHandler.setFormatter(logging.Formatter('\t%(message)s'))
-    consoleHandler.setLevel(level)
-    rootLogger.addHandler(consoleHandler)
-    
-    generalDebugHandler = logging.FileHandler(os.path.join(PATH_RES, LOG_FILE))
+    # logging to user home
+    generalDebugHandler = logging.FileHandler(os.path.join(userHome, LOG_FILE))
     generalDebugHandler.setFormatter(logging.Formatter(baseLoggingFormat))
     generalDebugHandler.setLevel(logging.DEBUG)
     rootLogger.addHandler(generalDebugHandler)
-    
+
     logging.info(40*'#')
     if parentApplication is not None:
         logging.info('%s started' % parentApplication.APPLICATION_NAME)
@@ -134,5 +130,13 @@ def initiateLogging(parentApplication=None, level=logging.DEBUG):
         logging.info('User:     %s' % userName)
         logging.info('Machine:  %s' % machine)
         logging.info(40*'#')
+    
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logging.Formatter('\t%(message)s'))
+    consoleHandler.setLevel(level)
+    rootLogger.addHandler(consoleHandler)
+    
+   
+
         
 #==============================================================================
