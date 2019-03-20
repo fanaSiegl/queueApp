@@ -297,6 +297,7 @@ class Qaba(object):
         # initiate resource status
         bi.Resources.initialise()
         
+        # check input interface
         paramProvided = self._checkInputArgs()
         if paramProvided:
             self.setupFromParameters()
