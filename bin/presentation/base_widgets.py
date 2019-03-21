@@ -852,6 +852,8 @@ class TrackedFileContentWidget(QtGui.QWidget):
         self.fileContentTextEdit.clear()
         
         self.fileContentTextEdit.setText(trackedFileContent)
+        self.fileContentTextEdit.moveCursor(QtGui.QTextCursor.End)
+        
         
 
 #==============================================================================

@@ -1,5 +1,5 @@
-qaba documentation
-==================
+queueApp documentation
+======================
 
 .. toctree::
    :maxdepth: 2

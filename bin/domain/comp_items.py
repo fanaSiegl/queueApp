@@ -1350,7 +1350,8 @@ class RunningJob(object):
         
         path = os.path.join(self.scratchPath, str(fileName))
         
-        ssh.stdin.write('cat %s' % path)
+#         ssh.stdin.write('cat %s' % path)
+        ssh.stdin.write('tail -n 100 %s' % path)
         ssh.stdin.close()
 
         return ssh.stdout.read()

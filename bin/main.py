@@ -33,6 +33,8 @@ q
 
 text based overview of Grid Engine jobs statuses
 
+q
+
 qa
 --
 
