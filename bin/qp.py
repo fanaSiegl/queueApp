@@ -1,6 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+'''
+qp
+==
+
+submits PAMCRASH job to Grid Engine
+
+'''
+
 import os
 import sys
 import time
@@ -14,7 +22,7 @@ import main as q
 def getListOfHosts():
     
     # initiate resource status
-    q.bi.Resources.initialise()
+    q.ci.Resources.initialise()
     
     hosts = list()
     for licenseServer in getListLicenses()[1]:
@@ -40,7 +48,8 @@ def getListLicenses():
 
 def main():
         
-    parser = argparse.ArgumentParser(description=q.__doc__[:q.__doc__.find('Usage')],
+    parser = argparse.ArgumentParser(
+        description=q.__doc__[:q.__doc__.find('Usage')] + __doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
 #     parser.add_argument('-g', action='store_true', help='Run gui.')
     parser.add_argument('-pc', nargs=1, metavar='inp_path', dest='inpFilePath',
@@ -60,7 +69,7 @@ def main():
     args = parser.parse_args()
     
     try:
-        qaba = q.Qpam(args)
+        qpam = q.Qpam(args)
     except Exception as e:
         print str(e)
         if q.DEBUG:

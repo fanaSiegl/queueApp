@@ -17,6 +17,8 @@ def main():
         print str(e)
         if q.DEBUG:
             traceback.print_exc()
+    except KeyboardInterrupt:
+        pass
     
 #==============================================================================
 

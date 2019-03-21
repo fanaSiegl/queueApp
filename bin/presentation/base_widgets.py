@@ -107,7 +107,7 @@ class BaseSelectorWidget(QtGui.QWidget):
         
         if len(self.items) == 0:
             return
-        
+  
         defaultButton = self.items[index - 1]
         defaultButton.setChecked(True)
         
@@ -562,7 +562,7 @@ class BaseListWidget(QtGui.QListWidget):
         self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
         
         self.itemSelectionChanged.connect(self.itemSelected)
-        self.itemChanged.connect(self.itemRenamed)
+#         self.itemChanged.connect(self.itemRenamed)
     
     #--------------------------------------------------------------------------
 
@@ -615,6 +615,8 @@ class BaseListWidget(QtGui.QListWidget):
 
 class QueueListWidget(BaseListWidget):
     
+    itemForTrackingSelected = QtCore.pyqtSignal(object)
+    
     def itemSelected(self):
         
         selectedItems = list()
@@ -626,6 +628,28 @@ class QueueListWidget(BaseListWidget):
 #         if len(selectedItems) > 0:
 #             self.parentApplication.signalController.materialImporterItemsSelected.emit(selectedItems)
     
+
+#===============================================================================
+
+class RunningJobFileListWidget(BaseListWidget):
+    
+    WIDTH = 400
+    HEIGHT = 600
+    
+    itemForTrackingSelected = QtCore.pyqtSignal(object, str)
+    
+    #------------------------------------------------------------------------------ 
+    
+    def setupContent(self, dataItem):
+        
+        fileNames = dataItem.getListOfFiles()
+        
+        self.clear()
+        
+        for fileName in fileNames:
+            newItem = RunningJobFileListWidgetItem(dataItem, fileName)
+            
+            self.addItem(newItem)
     
 #=============================================================================
 
@@ -669,7 +693,7 @@ class QueueJobListWidgetItem(BaseListWidgetItem):
         elif 'pamcrash' in self.dataItem.licenceServer.CODE:
             self.setTextColor(QtGui.QColor("green"))
         
-        if self.dataItem['JB_name'] == self.dataItem.OUT_OF_THE_QUEUE_NAME:
+        if self.dataItem.isOutOfTheQueue:
             self.setTextColor(QtGui.QColor("red"))
             
     #------------------------------------------------------------------------------ 
@@ -679,16 +703,24 @@ class QueueJobListWidgetItem(BaseListWidgetItem):
         menu = QtGui.QMenu()
         
         jobInfoAction = menu.addAction('Job info')
+        jobContentAction = menu.addAction('Check progress')
         jobKillAction = menu.addAction('Terminate')
         
         jobInfoAction.triggered.connect(self.jobInfo)
+        jobContentAction.triggered.connect(
+            lambda: self.showContent(parentWidget))
         jobKillAction.triggered.connect(self.jobTerminate)
         
         # check autority
-        if parentWidget.parentApplication.userName != self.dataItem['JB_owner']:
+#         if parentWidget.parentApplication.userName != self.dataItem['JB_owner']:
+#             jobKillAction.setEnabled(False)
+        if self.dataItem.isOutOfTheQueue:
             jobKillAction.setEnabled(False)
-        elif self.dataItem['JB_name'] == self.dataItem.OUT_OF_THE_QUEUE_NAME:
-            jobKillAction.setEnabled(False)
+        
+        if self.dataItem.isOutOfTheQueue:
+            jobContentAction.setEnabled(False)
+        elif self.dataItem._attributes['state'] != 'r':
+            jobContentAction.setEnabled(False)
                     
         menu.exec_(QtGui.QCursor.pos())
     
@@ -696,26 +728,171 @@ class QueueJobListWidgetItem(BaseListWidgetItem):
     
     def jobTerminate(self):
         
-        status = self.dataItem.terminate()
+        quitMsg = "Are you sure to terminate the job?"
+        reply = QtGui.QMessageBox.question(None, 'Exit', 
+            quitMsg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+    
+        if reply == QtGui.QMessageBox.Yes:
+            status = self.dataItem.terminate()
         
-        QtGui.QMessageBox.information(None, 'Terminate job %s info' % self.dataItem.id,
-                str(status))
+            QtGui.QMessageBox.information(None, 'Terminate job %s info' % self.dataItem.id,
+                    str(status))
     
     #------------------------------------------------------------------------------ 
     
     def jobInfo(self):
         
         QtGui.QMessageBox.information(None, 'Job %s info' % self.dataItem.id,
-                str(self.dataItem.getTooltip()))
+                str(self.dataItem.getInfo()))
         
     #------------------------------------------------------------------------------ 
     
-#     def separateMaterial(self, parentWidget, stateVariable):
-#                 
-#         parentDialog = parentWidget.parentWidget
-#         parentDialog.splitMaterial(self.dataItem, stateVariable)
-            
+    def showContent(self, parentWidget):
+        
+        parentWidget.itemForTrackingSelected.emit(self.dataItem)
+        
+
 #=============================================================================
+
+class RunningJobFileListWidgetItem(QtGui.QListWidgetItem):
+        
+    def __init__(self, dataItem, parentFileName):
+        
+        self.parentFileName = parentFileName
+        self.dataItem = dataItem
+        
+        super(RunningJobFileListWidgetItem, self).__init__(
+            parentFileName)
+        
+        self.setToolTip(self.dataItem.getTooltip())
+        
+#         self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable)
+#         self.setCheckState(QtCore.Qt.Unchecked)
+        
+#         
+#         font = QtGui.QFont()
+#         font.setFamily("Courier New")
+#         self.setFont(font)   
+            
+    #------------------------------------------------------------------------------ 
+    
+    def openContextMenu(self, parentWidget):
+        
+        menu = QtGui.QMenu()
+        
+        trackChangesAction = menu.addAction('Track content changes')
+        trackChangesAction.triggered.connect(
+            lambda: self.trackContent(parentWidget))
+                    
+        menu.exec_(QtGui.QCursor.pos())
+    
+    #------------------------------------------------------------------------------ 
+    
+    def trackContent(self, parentWidget):
+        
+        parentWidget.itemForTrackingSelected.emit(self.dataItem, self.parentFileName)
+        
+#=============================================================================
+
+class FileContentTrackerWidget(QtGui.QTabWidget):
+    
+    WIDTH = 800
+    HEIGHT = 600
+    
+    def __init__(self, mainWindow):
+        super(FileContentTrackerWidget, self).__init__(mainWindow)
+        
+        self.mainWindow = mainWindow
+        self.parentApplication = mainWindow.parentApplication
+    
+    #------------------------------------------------------------------------------ 
+    
+    def setupContent(self, jobItem, fileName):
+        
+        name = '%s (Job: %s)' %(fileName, jobItem.id)
+        self.addTab(TrackedFileContentWidget(self, jobItem, fileName), name)
+        
+        
+
+#=============================================================================
+
+class TrackedFileContentWidget(QtGui.QWidget):
+    
+    def __init__(self, parentWidget, dataItem, fileName):
+        super(TrackedFileContentWidget, self).__init__(parentWidget)
+        
+        self.parentWidget = parentWidget
+        self.parentApplication = parentWidget.parentApplication
+        self.dataItem = dataItem
+        self.fileName = fileName
+        
+        self.setLayout(QtGui.QVBoxLayout())
+        
+        self.fileContentTextEdit = QtGui.QTextEdit()
+        self.fileContentTextEdit.setReadOnly(True)
+        font = QtGui.QFont()
+        font.setFamily("Courier New")
+        self.fileContentTextEdit.setFont(font)   
+        
+        self.layout().addWidget(self.fileContentTextEdit)
+                
+        self.fileContentTrackerThread = FileContentTrackerThread(self)
+        self.fileContentTrackerThread.contentUpdated.connect(
+            self._updateContent)
+        self.parentApplication.signalGenerator.updateStatus.connect(
+            self.fileContentTrackerThread.run)
+        
+        # initiate content
+        self._updateContent(self.dataItem.getTrackedFileContent(self.fileName))
+        
+    #------------------------------------------------------------------------------ 
+    
+    def _updateContent(self, trackedFileContent):
+        
+        self.fileContentTextEdit.clear()
+        
+        self.fileContentTextEdit.setText(trackedFileContent)
+        
+
+#==============================================================================
+
+class FileContentTrackerThread(QtCore.QThread):
+    
+    contentUpdated = QtCore.pyqtSignal(str)
+    
+    def __init__(self, parentWidget):
+        super(FileContentTrackerThread, self).__init__()
+        
+        self.parentWidget = parentWidget
+        self.parentApplication = parentWidget.parentApplication
+        self.dataItem = self.parentWidget.dataItem
+        self.fileName = self.parentWidget.fileName
+                
+        self.fileContent = ''
+        
+    #--------------------------------------------------------------------------
+    
+    def run(self):
+        
+        content = self.dataItem.getTrackedFileContent(self.fileName)
+        
+        if content != self.fileContent:
+            self.fileContent = content        
+            self.contentUpdated.emit(self.fileContent)
+    
+    #--------------------------------------------------------------------------
+    
+            
+        
+#===============================================================================
+
+def createDock(parent, label, widget):
+
+    dockWidget = QtGui.QDockWidget(label, parent)
+    dockWidget.setWidget(widget)
+        
+    return dockWidget
+            
 
 #=============================================================================
 
