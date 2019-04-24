@@ -121,6 +121,7 @@ class PamCrashInpFile(AbaqusInpFile):
         
         self.includeFiles = list()
         self.analysisType = None
+        self.subAllFiles = False
                 
         self._analyseContent()
         self._checkIncludedFiles(self.includeFiles)
@@ -333,7 +334,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         runCommand += 'export PAM_LMD_LICENSE_FILE=7789@mb-dc1\n'
         runCommand += 'export PAMHOME=%s\n' % self.parentJob.solverVersion
         
-        runCommand += '%s2015.03/pamworld -np %s -lic CRASHSAF %s > %s.log' % (
+        runCommand += '%s2015.03/pamworld -np %s -lic CRASHSAF %s.pc > %s.pc.out' % (
             self.parentJob.solverVersion, self.parentJob.numberOfCores,
             self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)
         
@@ -365,9 +366,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         if len(self.user.email) > 0:
             content += '#$ -M %s\n' % self.user.email
             content += '#$ -m bes\n'
-        
-        content += 'umask 0002\n'
-        
+                
         content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
             self.jobSettings.SCRATCH_PATH, self.user.name)
         content += 'cd $scratch_dir\n'
