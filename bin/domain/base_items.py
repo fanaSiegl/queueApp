@@ -563,6 +563,17 @@ class So3ExecutionServerType(BaseExecutionServerType):
 
 #==============================================================================
 @utils.registerClass
+class So4ExecutionServerType(BaseExecutionServerType):
+    
+    NAME = 'server mb-so4'
+    NO_OF_CORES = 32
+    NO_OF_GPU = 2
+    DESCRIPTION = 'best performance'
+    
+    PATTERN = r'.*@(.*-so4)\.cax\.lan'
+    
+#==============================================================================
+@utils.registerClass
 class WorkstationExecutionServerType(BaseExecutionServerType):
     
     NAME = 'user workstation'
