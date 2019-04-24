@@ -93,7 +93,7 @@ optional arguments:
 
 APPLICATION_NAME = 'qq'
 DOCUMENTATON_GROUP = 'Queue tools'
-DOCUMENTATON_DESCRIPTION = 'Python application one line description.'
+DOCUMENTATON_DESCRIPTION = 'Python SGE monitoring and submitting application.'
 
 #==============================================================================
 
