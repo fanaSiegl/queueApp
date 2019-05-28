@@ -535,7 +535,7 @@ class Qpam(Qaba):
         self.profile.jobSettings.setLicenseServer(licenseServer)
         
         # set solver version
-        self.profile.job.setSolverVersion(ei.PAMCRASH_SOLVER_LIST[0])
+        self.profile.job.setSolverVersion(self.args.solver)
         
         # set execution server
         executionServerName = self.args.host + '.cax.lan'

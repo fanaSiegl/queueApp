@@ -312,8 +312,9 @@ class BaseExecutionProfileType(object):
         
         solverVersionSelector = bi.SolverVersionSelector(self.parentApplication)
         solverVersion = solverVersionSelector.getSelection()
+        solverVersionPath = solverVersionSelector.VERSIONS.getSolverPath(solverVersion) 
         
-        self.job.setSolverVersion(solverVersion)
+        self.job.setSolverVersion(solverVersionPath)
         
     #--------------------------------------------------------------------------
     
@@ -756,9 +757,12 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
     
     def _setSolverVersion(self):
         
-        solverVersion = ei.PAMCRASH_SOLVER_LIST[0]
+#         solverVersion = ei.PAMCRASH_SOLVER_LIST[0]
+        solverVersionSelector = bi.PamCrashSolverVersionSelector(self.parentApplication)
+        solverVersion = solverVersionSelector.getSelection()
+        solverVersionPath = solverVersionSelector.VERSIONS.getSolverPath(solverVersion) 
         
-        self.job.setSolverVersion(solverVersion)
+        self.job.setSolverVersion(solverVersionPath)
         
     #--------------------------------------------------------------------------
     

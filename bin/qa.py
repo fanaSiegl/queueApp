@@ -59,9 +59,9 @@ def main():
         default=getListLicenses()[0][q.bi.LicenseServerSelector.DFT_OPTION_INDEX - 1],
         help='ABAQUS license server type. (default=%s)' % [
             licenseServer.NAME for licenseServer in q.bi.LICENSE_SERVER_TYPES][q.bi.LicenseServerSelector.DFT_OPTION_INDEX - 1],)
-    parser.add_argument('-solver', choices=q.ei.ABAQUS_SOLVER_LIST,
-        default=q.ei.ABAQUS_SOLVER_LIST[q.bi.SolverVersionSelector.DFT_OPTION_INDEX - 1],
-        help='ABAQUS solver version. (default=%s)' % q.ei.ABAQUS_SOLVER_LIST[
+    parser.add_argument('-solver', choices=q.ei.AbaqusSolverVersions.SOLVER_LIST,
+        default=q.ei.AbaqusSolverVersions.SOLVER_LIST[q.bi.SolverVersionSelector.DFT_OPTION_INDEX - 1],
+        help='ABAQUS solver version. (default=%s)' % q.ei.AbaqusSolverVersions.SOLVER_LIST[
             q.bi.SolverVersionSelector.DFT_OPTION_INDEX - 1])
     parser.add_argument('-host', choices=getListOfHosts(), default='mb-so2',
         help='Calculation host. (default=mb-so2)')
