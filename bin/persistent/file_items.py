@@ -332,9 +332,10 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         
         runCommand = ''
         runCommand += 'export PAM_LMD_LICENSE_FILE=7789@mb-dc1\n'
-        runCommand += 'export PAMHOME=%s\n' % self.parentJob.solverVersion
+        runCommand += 'export PAMHOME=%s/\n' % os.path.dirname(
+            os.path.dirname(self.parentJob.solverVersion))
         
-        runCommand += '%s2015.03/pamworld -np %s -lic CRASHSAF %s.pc > %s.pc.out' % (
+        runCommand += '%s -np %s -lic CRASHSAF %s.pc > %s.pc.out' % (
             self.parentJob.solverVersion, self.parentJob.numberOfCores,
             self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)
         

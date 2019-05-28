@@ -1030,8 +1030,12 @@ class Resources(object):
             hostNameString = '@' + hostName
             executionServer = None
             
-            executionServer = bi.BaseExecutionServerType.getServerFromName(hostNameString)
-            cls.executionServers[hostName] = executionServer
+            try:
+                executionServer = bi.BaseExecutionServerType.getServerFromName(hostNameString)
+                cls.executionServers[hostName] = executionServer
+            except bi.DataSelectorException as e:
+                print str(e)
+                
             
 #             for serverType in EXECUTION_SERVER_TYPES.values():
 #                 matchServer = re.match(serverType.PATTERN, hostNameString)
@@ -1062,9 +1066,13 @@ class Resources(object):
             
             executionServers = list()
             for hostName in hosts:
-                executionServer = cls.executionServers[hostName]
+                if hostName not in cls.executionServers:
+                    print 'Host name not recognised! "%s"' % hostName
+                    continue
                 
+                executionServer = cls.executionServers[hostName]
                 executionServers.append(executionServer)
+                
 #                 # sort host according to their type
 #                 if type(executionServer) is WorkstationExecutionServerType:
 #                     executionServers.append(executionServer)

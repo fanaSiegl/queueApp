@@ -564,12 +564,12 @@ class So3ExecutionServerType(BaseExecutionServerType):
 #==============================================================================
 @utils.registerClass
 class So4ExecutionServerType(BaseExecutionServerType):
-    
+     
     NAME = 'server mb-so4'
     NO_OF_CORES = 32
-    NO_OF_GPU = 2
+    NO_OF_GPU = 0
     DESCRIPTION = 'best performance'
-    
+     
     PATTERN = r'.*@(.*-so4)\.cax\.lan'
     
 #==============================================================================
@@ -882,6 +882,7 @@ class SolverVersionSelector(BaseDataSelector):
     
     DFT_OPTION_INDEX = 3
     DESCRIPTION = 'Choose the ABAQUS solver version'
+    VERSIONS = ei.AbaqusSolverVersions
       
     #--------------------------------------------------------------------------
     
@@ -889,7 +890,7 @@ class SolverVersionSelector(BaseDataSelector):
 
 #TODO: load dynamically?
         
-        versions = ei.ABAQUS_SOLVER_LIST
+        versions = self.VERSIONS.SOLVER_LIST
         
         return versions
     
@@ -909,10 +910,11 @@ class SolverVersionSelector(BaseDataSelector):
     #--------------------------------------------------------------------------
     
     def indexToItem(self, index):
-        
+         
         versions = self.getOptions()
+#         return versions[index]
         
-        return versions[index]
+        return self.VERSIONS.getSolverPath(versions[index])
     
 #==============================================================================
 
@@ -1006,7 +1008,7 @@ class PamcrashInputFileSelector(InputFileSelector):
 
 class PamCrashExecutionServerSelector(ExecutionServerSelector):
     
-    DFT_OPTION_INDEX = 3
+    DFT_OPTION_INDEX = 1
 
 #==============================================================================
 
@@ -1033,13 +1035,6 @@ class PamCrashSolverVersionSelector(SolverVersionSelector):
     
     DFT_OPTION_INDEX = 1
     DESCRIPTION = 'Choose the PamCrash solver version'
-      
-    #--------------------------------------------------------------------------
-    
-    def getOptions(self):        
-        versions = ei.PAMCRASH_SOLVER_LIST
-        
-        return versions
-            
+    VERSIONS = ei.PamcrashSolverVersions            
 
     
