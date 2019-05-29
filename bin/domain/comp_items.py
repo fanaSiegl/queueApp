@@ -17,6 +17,7 @@ import base_items as bi
 import enum_items as ei
 from persistent import file_items as fi
 from interfaces import xmlio
+from dns.rdatatype import PTR
 
 #==============================================================================
 
@@ -242,6 +243,7 @@ class BaseExecutionProfileType(object):
         self.job = AbaqusJob()
         self.jobSettings = JobExecutionSetting()
         self.user = User()
+        self.postProcessingType = bi.BasePostProcessingType(self.job)
         
         self.inpFileNames = list()
                 
@@ -259,8 +261,9 @@ class BaseExecutionProfileType(object):
         self._setJobStartTime()
         self._setJobDescription()
         self._setAdditionalSolverParams()
+        self._setPostProcessingType()
         
-        logging.info("Info- Required licenses for this job are: %s" % self.job.getTokensRequired())
+        logging.info("Info- Required licenses for this job: %s" % self.job.getTokensRequired())
         
     #--------------------------------------------------------------------------
 
@@ -399,10 +402,26 @@ class BaseExecutionProfileType(object):
         bi.BaseDataSelector.printSelectionTitle('Additional parameters for solver')
         
         params = bi.BaseDataSelector.getTextInput(
-            'Specify more job parameters [15 characters, enter=none]: ', '')
+            'Specify more job parameters [15 characters, enter="%s"]: ' % self.getDftAdditionalSolverParams(),
+            self.getDftAdditionalSolverParams())
         
         self.jobSettings.setAdditionalSolverParams(params)
     
+    #--------------------------------------------------------------------------
+    
+    def _setPostProcessingType(self):
+        
+        selector = bi.PostProcessingSelector(self.parentApplication)
+        postProcessingType = selector.getSelection()
+        
+        self.postProcessingType = postProcessingType(self.job)
+        
+    #--------------------------------------------------------------------------
+    
+    def getDftAdditionalSolverParams(self):
+        
+        return ''
+
     #--------------------------------------------------------------------------
 
     def getDftLicenseServerOption(self):
@@ -450,24 +469,25 @@ class BaseExecutionProfileType(object):
 class DatacheckExecutionProfileType(BaseExecutionProfileType):
     
     NAME = 'Datacheck - start immediately (1 CPU on local workstation)'
-    ID = 2
+    ID = 5
     
     DATACHECK_CPU_NO = 1
     DATACHECK_TOKEN_NO = 30
-        
-    #--------------------------------------------------------------------------
-
-    def _setLicenseServer(self):
-        
-        self.job.setNumberOfCores(self.DATACHECK_CPU_NO)
-        self.job.fixTokenNumber = self.DATACHECK_TOKEN_NO
-
-#TODO: fix token number for datacheck
-#         tokensRequired = bi.DslsLicenseType.getNoOfTokens(self.job.numberOfCores)
-        tokensRequired = self.DATACHECK_TOKEN_NO
-        licenseServer = bi.BaseLicenseServerType.getFreeFromTokens(tokensRequired)
-        
-        self.jobSettings.setLicenseServer(licenseServer)
+    DFT_LICENSE_TYPE = bi.Var2LicenseServerType
+            
+#     #--------------------------------------------------------------------------
+#      
+#     def _setLicenseServer(self):
+#          
+#         self.job.setNumberOfCores(self.DATACHECK_CPU_NO)
+#         self.job.fixTokenNumber = self.DATACHECK_TOKEN_NO
+# 
+# #TODO: fix token number for datacheck
+# #         tokensRequired = bi.DslsLicenseType.getNoOfTokens(self.job.numberOfCores)
+#         tokensRequired = self.DATACHECK_TOKEN_NO
+#         licenseServer = bi.BaseLicenseServerType.getFreeFromTokens(tokensRequired)
+#         
+#         self.jobSettings.setLicenseServer(licenseServer)
     
     #--------------------------------------------------------------------------
 
@@ -484,6 +504,9 @@ class DatacheckExecutionProfileType(BaseExecutionProfileType):
     #--------------------------------------------------------------------------
 
     def _setAdditionalSolverParams(self):
+        
+        self.job.setNumberOfCores(self.DATACHECK_CPU_NO)
+        self.job.fixTokenNumber = self.DATACHECK_TOKEN_NO
         
         self.jobSettings.setAdditionalSolverParams(' datacheck')
     
@@ -528,6 +551,12 @@ class DatacheckExecutionProfileType(BaseExecutionProfileType):
                 return hosts.index(host) + 1
         
         return 1
+    
+    #--------------------------------------------------------------------------
+
+    def getDftLicenseServerOption(self):
+                
+        return bi.LICENSE_SERVER_TYPES.index(self.DFT_LICENSE_TYPE) + 1
         
     
 #==============================================================================
@@ -535,7 +564,7 @@ class DatacheckExecutionProfileType(BaseExecutionProfileType):
 class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
     
     NAME = 'License priority - use any free license (reduce CPU and start on any free server)'
-    ID = 0
+    ID = 4
     
     #--------------------------------------------------------------------------
 
@@ -668,14 +697,142 @@ class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
         maxValue = self.jobSettings.executionServer.NO_OF_CORES
                 
         return minValue, maxValue, defaultNoOfCores
-        
+
+            
 #==============================================================================
 @utils.registerClass
-class ResourcePriorityExecutionProfileType(BaseExecutionProfileType):
+class ResourcePriority1ExecutionProfileType(BaseExecutionProfileType):
     
-    NAME = 'Resource priority - wait for free license (use max. CPU on preferred server)'
+    NAME = 'Resource priority 1 - use preferred license, CPU and server'
     ID = 1
+    DFT_LICENSE_TYPE = bi.CommercialLicenseServerType
+    DFT_NO_OF_CORES = 32
+    DFT_EXECUTION_SERVER_INDEX = 3
+    
+    #--------------------------------------------------------------------------
 
+    def getDftLicenseServerOption(self):
+                
+        return bi.LICENSE_SERVER_TYPES.index(self.DFT_LICENSE_TYPE) + 1
+
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfCores(self):   
+    
+        maxValue = self.jobSettings.executionServer.NO_OF_CORES
+        minValue = 1
+        dftValue = self.DFT_NO_OF_CORES
+        
+        return minValue, maxValue, dftValue
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftExectionServerOption(self):
+        
+        return self.DFT_EXECUTION_SERVER_INDEX
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftAdditionalSolverParams(self):
+        
+        params = ''
+        # check v2019 version
+        if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x'):
+            params = 'threads=4'
+
+        return params
+    
+
+#==============================================================================
+@utils.registerClass
+class ResourcePriority2ExecutionProfileType(ResourcePriority1ExecutionProfileType):
+    
+    NAME = 'Resource priority 2 - use preferred license, CPU and server'
+    ID = 2
+    DFT_LICENSE_TYPE = bi.Var1LicenseServerType
+    DFT_NO_OF_CORES = 12
+    DFT_EXECUTION_SERVER_INDEX = 2
+
+#==============================================================================
+@utils.registerClass
+class ResourcePriority3ExecutionProfileType(ResourcePriority1ExecutionProfileType):
+    
+    NAME = 'Resource priority 3 - use preferred license, CPU and server'
+    ID = 3
+    DFT_LICENSE_TYPE = bi.Var2LicenseServerType
+    DFT_NO_OF_CORES = 6
+    DFT_EXECUTION_SERVER_INDEX = 1
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftAdditionalSolverParams(self):
+        
+        return ''
+
+#==============================================================================
+@utils.registerClass
+class AutoPriority1ExecutionProfileType(ResourcePriority3ExecutionProfileType):
+    
+    NAME = 'Auto - use preferred profile based on the current availability'
+    ID = 0
+    
+    #--------------------------------------------------------------------------
+    
+    def __init__(self, parentApplication):
+        
+        super(AutoPriority1ExecutionProfileType, self).__init__(parentApplication)
+        
+        self.activeProfile = ResourcePriority3ExecutionProfileType
+        self._findAvailableProfileSettings()
+            
+    #--------------------------------------------------------------------------
+    
+    def _findAvailableProfileSettings(self):
+         
+        freeLicenseServer = bi.BaseLicenseServerType.getFree(self.SOLVER_TYPE.NAME)
+        serverHosts = freeLicenseServer.getAPservers()
+        
+        def _checkProfileAvailability(profile):
+            
+            # check available profiles
+            noOfCoresProfile = profile.DFT_NO_OF_CORES
+            noOfFreeCoresAtPreferedServerProfile = serverHosts[profile.DFT_EXECUTION_SERVER_INDEX - 1].freeCpuNo
+            
+            if (freeLicenseServer == profile.DFT_LICENSE_TYPE and 
+                 noOfFreeCoresAtPreferedServerProfile >= noOfCoresProfile):
+
+                return profile.DFT_LICENSE_TYPE, profile.DFT_NO_OF_CORES, profile.DFT_EXECUTION_SERVER_INDEX
+            else:
+                return None
+        
+        profiles = [
+            ResourcePriority1ExecutionProfileType,
+            ResourcePriority2ExecutionProfileType,
+            ResourcePriority3ExecutionProfileType]
+        
+        for profile in profiles:
+            settings = _checkProfileAvailability(profile)
+            
+            if settings is not None:
+                self.DFT_LICENSE_TYPE = settings[0]
+                self.DFT_NO_OF_CORES = settings[1]
+                self.DFT_EXECUTION_SERVER_INDEX = settings[2]
+                
+                self.activeProfile = profile  
+                break
+        
+        logging.debug('Auto profile setting set to: %s' % profile.NAME)
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftAdditionalSolverParams(self):
+        
+        if self.activeProfile is not ResourcePriority3ExecutionProfileType:
+            if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x'):
+                return 'threads=4'
+            
+        return '' 
+      
 #==============================================================================
 
 class AbaqusExecutionProfileSelector(bi.BaseDataSelector):
@@ -1393,22 +1550,24 @@ class Queue(object):
     
     def updateState(self):
         
+        ''' Jobs are sorted according to solver type and by their queue state '''
+        
         self.jobs = list()
         
+        self.jobsBySolver = dict()
+        for solverType in bi.SOLVER_TYPES.values():
+            self.jobsBySolver[solverType] = list()
+        
         for job in self.resources.jobsInQueue.values():
+            solverType = job.solverType
             if job['state'] == 'r':
-                self.jobs.insert(0, job)
+                self.jobsBySolver[solverType].insert(0, job)
             else:
-                self.jobs.append(job)
+                self.jobsBySolver[solverType].append(job)
         
-#         self.jobs = self.resources.jobsInQueue
-        
-#         jobAttributes = xmlio.GridEngineInterface.getQueueStat()
-#         
-#         self.jobs = list()
-#         for jobAttribute in jobAttributes: 
-#             self.jobs.append(RunningJob(jobAttribute))
-            
+        for jobs in self.jobsBySolver.values():
+            self.jobs.extend(jobs)
+                    
     #--------------------------------------------------------------------------
     
     def getColumnLabels(self):

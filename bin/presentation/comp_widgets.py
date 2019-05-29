@@ -159,6 +159,8 @@ class BaseSubmitWidget(QtGui.QWidget):
         
         self.jobPrioritySelectorWidget.setDefaultOption(
             *self.profile.getDftJobPriority())
+        
+        self.postProcessingSelectorWidget.setupOptions()
                     
     #---------------------------------------------------------------------------
     
@@ -294,6 +296,9 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
         groupLayout.addWidget(self.jobStartTimeSelectorWidget)
         
+        selectorItem = bi.PostProcessingSelector(self)
+        self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
         
         
         # left pane
@@ -334,6 +339,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.jobDescriptionSelectorWidget.changed.connect(self._setJobDescription)
         self.solverParametersSelectorWidget.changed.connect(self._setAdditionalSolverParams)
         self.jobStartTimeSelectorWidget.changed.connect(self._setJobStartTime)
+        self.postProcessingSelectorWidget.changed.connect(self._setPostProcessingType)
         
         self.submitButton.released.connect(self.submit)
         
@@ -365,6 +371,8 @@ class BaseSubmitWidget(QtGui.QWidget):
     
     def _setupProfile(self, profile):
         
+        logging.debug('Setting current profile to: %s' % profile.NAME)
+        
         # initialisation or switching the current profile
         if self.profile is None:
             self.profile = profile(self)
@@ -381,9 +389,9 @@ class BaseSubmitWidget(QtGui.QWidget):
         
         self.licenseServerSelectorWidget.setDefaultOption(
             self.profile.getDftLicenseServerOption())
-        
-        logging.debug('Setting current profile to: %s' % self.profile.NAME)
-        
+        self.solverParametersSelectorWidget.setDefaultOption(
+            self.profile.getDftAdditionalSolverParams())
+                
     #--------------------------------------------------------------------------
 
     def _setupLicenseServer(self, licenseServer):
@@ -394,7 +402,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.executionServerSelectorWidget.setupOptions()
         self.executionServerSelectorWidget.setDefaultOption(
             self.profile.getDftExectionServerOption())
-    
+            
     #--------------------------------------------------------------------------
 
     def _setExecutionServer(self, executionServer):
@@ -413,6 +421,10 @@ class BaseSubmitWidget(QtGui.QWidget):
     def _setSolverVersion(self, solverVersion):
         
         self.profile.job.setSolverVersion(solverVersion)
+        
+        # update additional solver parameters
+        self.solverParametersSelectorWidget.setDefaultOption(
+            self.profile.getDftAdditionalSolverParams())
     
     #--------------------------------------------------------------------------
     
@@ -449,6 +461,12 @@ class BaseSubmitWidget(QtGui.QWidget):
     def _setJobDescription(self, jobDescription):
                         
         self.profile.job.setDescription(jobDescription)
+    
+    #--------------------------------------------------------------------------
+    
+    def _setPostProcessingType(self, postProcessingType):
+        
+        self.profile.postProcessingType = postProcessingType(self.profile.job)
         
 #===============================================================================
 @utils.registerClass
@@ -526,7 +544,9 @@ class PamCrashSubmitWidget(BaseSubmitWidget):
         self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
         groupLayout.addWidget(self.jobStartTimeSelectorWidget)
         
-        
+        selectorItem = bi.PostProcessingSelector(self)
+        self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
         
         # left pane
         selectorItem = bi.PamcrashInputFileSelector(self)

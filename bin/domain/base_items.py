@@ -10,6 +10,7 @@ import shutil
 import time
 import re
 import logging
+from string import Template
 
 import utils
 import enum_items as ei
@@ -23,6 +24,7 @@ EXECUTION_SERVER_TYPES = dict()
 PAMCRASH_LICENSE_SERVER_TYPES = list()
 NASTRAN_LICENSE_SERVER_TYPES = list()
 SOLVER_TYPES = dict()
+POST_PROCESSING_TYPES = list()
 
 #==============================================================================
 
@@ -47,8 +49,15 @@ class BaseSolverType(object):
             if solverTypeName.lower() in name.lower():
                 return solverType
         
-        return None
+        return UnknownSolverType
 
+#==============================================================================
+@utils.registerClass
+class UnknownSolverType(BaseSolverType):
+    
+    NAME = 'UNKNOWN'
+    QUEUE_COLOUR = utils.ConsoleColors.FAIL
+    
 #==============================================================================
 @utils.registerClass
 class AbaqusSolverType(BaseSolverType):
@@ -62,7 +71,14 @@ class PamCrashSolverType(BaseSolverType):
     
     NAME = 'PamCrash'
     QUEUE_COLOUR = utils.ConsoleColors.GREEN
+
+#==============================================================================
+@utils.registerClass
+class NastranSolverType(BaseSolverType):
     
+    NAME = 'NASTRAN'
+    QUEUE_COLOUR = utils.ConsoleColors.CYAN
+
 #==============================================================================
 
 class BaseLicenseType(object):
@@ -314,7 +330,7 @@ class BaseLicenseServerType(object):
 class Var1LicenseServerType(BaseLicenseServerType):
     
     NAME = 'VAR_1'
-    ID = 2
+    ID = 1
     CODE = 'abaqus3'
     QUEUE_CODE = 'qxt3'
 
@@ -323,7 +339,7 @@ class Var1LicenseServerType(BaseLicenseServerType):
 class Var2LicenseServerType(BaseLicenseServerType):
     
     NAME = 'VAR_2'
-    ID = 1
+    ID = 2
     CODE = 'abaqus2'
     QUEUE_CODE = 'qxt2'
 
@@ -587,7 +603,59 @@ class WorkstationExecutionServerType(BaseExecutionServerType):
     @classmethod
     def getDftCoreNumber(cls):
         return cls.NO_OF_CORES - 1
+
+#==============================================================================
+
+class BasePostProcessingType(object):
+    
+    container = POST_PROCESSING_TYPES
+    NAME = ''
+    
+    def __init__(self, parentJob):
         
+        self.parentJob = parentJob
+    
+    #--------------------------------------------------------------------------
+    
+    def getContent(self):
+        
+        return ''
+    
+#==============================================================================
+@utils.registerClass
+class MetaConversionPostProcessingType(BasePostProcessingType):
+    
+    NAME = 'Meta Conversion'
+    ID = 0
+    
+    #--------------------------------------------------------------------------
+    
+    def getContent(self):
+        
+        template = Template('''/bin/uname -a
+# now sleep until lock file disappears
+sleep 30 && while [ -f $jobname.lck ]; do sleep 5; done
+
+if [ -r META_queue_session.ses -a -f /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh ]; then   #konverze do metadb
+    echo "Startuji konverzi do Metadb"
+    echo "Startuji konverzi do Metadb" >> $jobname.log
+    /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh -b -foregr -virtualx_64bit -s META_queue_session.ses $jobname &>> $jobname.log
+    sleep 5
+    echo "Koncim konverzi do Metadb"
+    echo "Koncim konverzi do Metadb" >> $jobname.log
+fi
+''')
+
+        return template.safe_substitute(
+            {'jobname' : self.parentJob.inpFile.baseName})
+
+#==============================================================================
+@utils.registerClass
+class ResultsDeletingPostProcessingType(BasePostProcessingType):
+    
+    NAME = 'Results deleting'
+    ID = 1
+            
 #==============================================================================
 
 class BaseDataSelector(object):
@@ -880,7 +948,7 @@ class RestartInputFileSelector(InputFileSelector):
 
 class SolverVersionSelector(BaseDataSelector):
     
-    DFT_OPTION_INDEX = 3
+    DFT_OPTION_INDEX = ei.AbaqusSolverVersions.getDftVersionIndex()
     DESCRIPTION = 'Choose the ABAQUS solver version'
     VERSIONS = ei.AbaqusSolverVersions
       
@@ -985,7 +1053,7 @@ class ExecutionServerSelector(BaseDataSelector):
         self.printSelectionTitle(self.DESCRIPTION)
         
         index = self._getOptionFromList(description, 
-            "Enter the number which represent prefered execution host [enter=%s]: " % self.DFT_OPTION_INDEX,
+            "Enter the number which represent preferred execution host [enter=%s]: " % self.DFT_OPTION_INDEX,
             infoLines)
                         
         return hosts[index]
@@ -1033,8 +1101,43 @@ class PamCrashLicenseServerSelector(LicenseServerSelector):
 
 class PamCrashSolverVersionSelector(SolverVersionSelector):
     
-    DFT_OPTION_INDEX = 1
+    DFT_OPTION_INDEX = ei.PamcrashSolverVersions.getDftVersionIndex()
     DESCRIPTION = 'Choose the PamCrash solver version'
     VERSIONS = ei.PamcrashSolverVersions            
 
+#==============================================================================
+
+class PostProcessingSelector(BaseDataSelector):
     
+    DFT_OPTION_INDEX = 1
+    DESCRIPTION = 'Available post-processing options'
+    
+    #-------------------------------------------------------------------------
+    
+    def getOptions(self):
+        
+        options = list()
+        for postProcessingOption in POST_PROCESSING_TYPES:   
+            options.append(postProcessingOption.NAME)
+        
+        return options
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+        
+        return POST_PROCESSING_TYPES[index]
+    
+    #-------------------------------------------------------------------------
+    
+    def getSelection(self):
+        
+        options = self.getOptions()
+                    
+        # print list of servers
+        index = self._getOptionFromList(
+            self.DESCRIPTION,
+            "Enter the number which represents a post-processing type [enter=%s]: " % self.DFT_OPTION_INDEX,
+            options)
+        
+        return self.indexToItem(index)

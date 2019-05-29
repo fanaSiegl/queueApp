@@ -197,6 +197,7 @@ class AbaqusJobExecutableFile(object):
         self.parentJob = parentJob
         self.jobSettings = self.parentApplication.profile.jobSettings
         self.user = self.parentApplication.profile.user
+        self.postProcessingType = self.parentApplication.profile.postProcessingType
         
         self.outputFileName = os.path.join(self.parentJob.inpFile.dirName,
             self.parentJob.inpFile.baseName + '.sh')
@@ -210,7 +211,7 @@ class AbaqusJobExecutableFile(object):
         content += 'echo "Starting %s"\n' % self.SOLVER_NAME
         content += self._getRunCommand()
         content += 'echo "%s finished"\n' % self.SOLVER_NAME
-        content += self._getMetaDbExportContent()
+        content += self.postProcessingType.getContent()
         
         return content
     
@@ -299,25 +300,25 @@ class AbaqusJobExecutableFile(object):
     
     #--------------------------------------------------------------------------
     
-    def _getMetaDbExportContent(self):
-        
-        template = Template('''/bin/uname -a
-# now sleep until lock file disappears
-sleep 30 && while [ -f $jobname.lck ]; do sleep 5; done
-
-if [ -r META_queue_session.ses -a -f /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh ]; then   #konverze do metadb
-    echo "Startuji konverzi do Metadb"
-    echo "Startuji konverzi do Metadb" >> $jobname.log
-    /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh -b -foregr -virtualx_64bit -s META_queue_session.ses $jobname &>> $jobname.log
-    sleep 5
-    echo "Koncim konverzi do Metadb"
-    echo "Koncim konverzi do Metadb" >> $jobname.log
-fi
-''')
-        
-        
-        return template.safe_substitute(
-            {'jobname' : self.parentJob.inpFile.baseName})
+#     def _getMetaDbExportContent(self):
+#         
+#         template = Template('''/bin/uname -a
+# # now sleep until lock file disappears
+# sleep 30 && while [ -f $jobname.lck ]; do sleep 5; done
+# 
+# if [ -r META_queue_session.ses -a -f /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh ]; then   #konverze do metadb
+#     echo "Startuji konverzi do Metadb"
+#     echo "Startuji konverzi do Metadb" >> $jobname.log
+#     /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh -b -foregr -virtualx_64bit -s META_queue_session.ses $jobname &>> $jobname.log
+#     sleep 5
+#     echo "Koncim konverzi do Metadb"
+#     echo "Koncim konverzi do Metadb" >> $jobname.log
+# fi
+# ''')
+#         
+#         
+#         return template.safe_substitute(
+#             {'jobname' : self.parentJob.inpFile.baseName})
 
 #==============================================================================
 

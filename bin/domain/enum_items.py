@@ -28,7 +28,9 @@ class AbaqusSolverVersions(object):
         'abaqus2018x': 'abaqus2018x',
         'abaqus2018-HF4': 'abaqus2018-HF4',
         'abaqus2019x': 'abaqus2019x'}
+    DFT_VERSION = 'abaqus2019x'
     
+    #--------------------------------------------------------------------------
     @classmethod
     def getSolverPath(cls, version):
         
@@ -37,6 +39,13 @@ class AbaqusSolverVersions(object):
                 '"%s" not found in available versions: %s' % (version, cls.SOLVER_LIST)))
         
         return cls.SOLVER_PATHS[version]
+    
+    #--------------------------------------------------------------------------
+    @classmethod
+    def getDftVersionIndex(cls):
+        
+        return cls.SOLVER_LIST.index(cls.DFT_VERSION) + 1
+    
 
 #==============================================================================
 
@@ -48,7 +57,7 @@ class PamcrashSolverVersions(AbaqusSolverVersions):
     SOLVER_PATHS = {
         'PAMCRASH v2015.03' :'/usr1/applications/pamcrash/v2015.03/pamcrash_safe/2015.03/pamworld',
         'PAMCRASH v2016.06' : '/usr1/applications/pamcrash/v2016.06/pamcrash_safe/2016.06/pamworld'}
-
+    DFT_VERSION = 'PAMCRASH v2015.03'
 
 #==============================================================================
 
@@ -68,3 +77,4 @@ class AnalysisTypes(object):
     PAMCRASH = {
         'IMPLICIT' : IMPLICIT,
         'EXPLICIT' : EXPLICIT}
+    

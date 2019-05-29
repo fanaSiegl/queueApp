@@ -209,6 +209,7 @@ class MainWindow(QtGui.QMainWindow):
 
     WIDTH = 1300
     HEIGHT = 700
+    FONT_POINT_SIZE = 10
 
     STATUSBAR_MESSAGE_DURATION = 2000
         
@@ -232,6 +233,10 @@ class MainWindow(QtGui.QMainWindow):
     #---------------------------------------------------------------------------
 
     def _setWindowGeometry(self):
+        
+        font = self.font()
+        font.setPointSize(self.FONT_POINT_SIZE)
+        self.setFont(font)
         
         self.setWindowTitle('%s (%s)' % (
             self.parentApplication.APPLICATION_NAME, self.parentApplication.revision))

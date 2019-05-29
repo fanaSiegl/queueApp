@@ -489,6 +489,12 @@ class BaseLineEditWidget(QtGui.QWidget):
     def valueChanged(self):
         
         self.changed.emit(self.lineEdit.text())
+    
+    #---------------------------------------------------------------------------
+    
+    def setDefaultOption(self, text):
+        
+        self.lineEdit.setText(text)
 
 #=============================================================================
 
