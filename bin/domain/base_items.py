@@ -112,9 +112,11 @@ class BaseLicenseType(object):
 class FlexLicenseType(BaseLicenseType):
     
     NAME = 'flex'
-    TOKENS = [5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16,
-        16, 17, 17, 18, 18, 18, 19, 19, 19, 20, 20, 20, 21, 21, 21, 21, 22, 
-        22, 22, 22, 23, 23, 23]
+    TOKENS = [
+        5, 6, 7, 8, 9, 10, 11, 12, 12, 13,
+        13, 14, 14, 15, 15, 16, 16, 16, 17, 17,
+        18, 18, 18, 19, 19, 19, 20, 20, 20, 21,
+        21, 21, 21, 22, 22, 22, 22, 23, 23, 23]
 
 #==============================================================================
 @utils.registerClass
@@ -135,7 +137,17 @@ class PamcrashLicenseType(BaseLicenseType):
               33, 33, 34, 34, 34, 35, 35, 35, 35, 35,
               36, 36, 36, 36, 36, 37, 37, 37, 37, 37,
               37, 38]
+
+#==============================================================================
+@utils.registerClass
+class NastranLicenseType(BaseLicenseType):
     
+    NAME = 'Nastran'
+    TOKENS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+              1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+              1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+              1, 1]
+        
 #==============================================================================
 
 class BaseLicenseServerType(object):
@@ -620,13 +632,20 @@ class BasePostProcessingType(object):
     def getContent(self):
         
         return ''
+
+#==============================================================================
+@utils.registerClass
+class NoPostProcessingType(BasePostProcessingType):
+    
+    NAME = 'No postprocessing'
+    ID = 0
     
 #==============================================================================
 @utils.registerClass
 class MetaConversionPostProcessingType(BasePostProcessingType):
     
     NAME = 'Meta Conversion'
-    ID = 0
+    ID = 1
     
     #--------------------------------------------------------------------------
     
@@ -654,7 +673,7 @@ fi
 class ResultsDeletingPostProcessingType(BasePostProcessingType):
     
     NAME = 'Results deleting'
-    ID = 1
+    ID = 2
             
 #==============================================================================
 
@@ -1105,6 +1124,45 @@ class PamCrashSolverVersionSelector(SolverVersionSelector):
     DESCRIPTION = 'Choose the PamCrash solver version'
     VERSIONS = ei.PamcrashSolverVersions            
 
+#==============================================================================
+
+class NastranInputFileSelector(InputFileSelector):
+    
+    FILE_EXT = ei.FileExtensions.NASTRAN_INPUT
+
+#==============================================================================
+
+class NastranLicenseServerSelector(LicenseServerSelector):
+    
+    DFT_OPTION_INDEX = 1
+    DESCRIPTION = 'Available license servers'
+    
+    #-------------------------------------------------------------------------
+    
+    def getOptions(self):
+        
+        return [LICENSE_SERVER_TYPES[4].toOptionLine()]
+    
+    #--------------------------------------------------------------------------
+    
+    def indexToItem(self, index):
+        
+        return LICENSE_SERVER_TYPES[4]
+    
+#==============================================================================
+
+class NastranSolverVersionSelector(SolverVersionSelector):
+    
+    DFT_OPTION_INDEX = ei.NastranSolverVersions.getDftVersionIndex()
+    DESCRIPTION = 'Choose the Nastran solver version'
+    VERSIONS = ei.NastranSolverVersions   
+
+#==============================================================================
+
+class NastranExecutionServerSelector(ExecutionServerSelector):
+    
+    DFT_OPTION_INDEX = 1
+    
 #==============================================================================
 
 class PostProcessingSelector(BaseDataSelector):

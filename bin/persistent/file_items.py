@@ -175,7 +175,24 @@ class PamCrashInpFile(AbaqusInpFile):
 #                         self.eigSolver = params[-1].strip()
             
         fi.close()
+
+#==============================================================================
+
+class NastranInpFile(AbaqusInpFile):
+        
+    def __init__(self, bdfFileName):
+
+        self.fileName = bdfFileName
+        self.baseName = os.path.splitext(os.path.basename(bdfFileName))[0]
+        self.dirName = os.path.dirname(bdfFileName)
+        
+        self.includeFiles = list()
+        self.analysisType = None
+        self.subAllFiles = False
                 
+        self._analyseContent()
+        self._checkIncludedFiles(self.includeFiles)
+
 #==============================================================================
 
 class AbaqusEnvConfigFile(object):    
@@ -188,15 +205,17 @@ class AbaqusEnvConfigFile(object):
 
 class AbaqusJobExecutableFile(object):
     
-    SOLVER_NAME = 'ABAQUS'
+#     SOLVER_NAME = 'ABAQUS'
     
     def __init__(self, parentApplication, parentJob):
         
         self.parentApplication = parentApplication
         
         self.parentJob = parentJob
-        self.jobSettings = self.parentApplication.profile.jobSettings
-        self.user = self.parentApplication.profile.user
+        self.parentProfile = self.parentApplication.profile
+        
+        self.jobSettings = self.parentProfile.jobSettings
+        self.user = self.parentProfile.user
         self.postProcessingType = self.parentApplication.profile.postProcessingType
         
         self.outputFileName = os.path.join(self.parentJob.inpFile.dirName,
@@ -207,10 +226,11 @@ class AbaqusJobExecutableFile(object):
     def getContent(self):
         
         content = self._getDescriptionContent()
-        
-        content += 'echo "Starting %s"\n' % self.SOLVER_NAME
+
+        content += '/bin/uname -a\n\n'
+        content += '\necho "Starting %s"\n' % self.parentProfile.SOLVER_TYPE.NAME#self.SOLVER_NAME
         content += self._getRunCommand()
-        content += 'echo "%s finished"\n' % self.SOLVER_NAME
+        content += 'echo "%s finished"\n' % self.parentProfile.SOLVER_TYPE.NAME#self.SOLVER_NAME
         content += self.postProcessingType.getContent()
         
         return content
@@ -324,7 +344,7 @@ class AbaqusJobExecutableFile(object):
 
 class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
     
-    SOLVER_NAME = 'PAMCRASH'
+#     SOLVER_NAME = 'PAMCRASH'
     
     #-------------------------------------------------------------------------
     
@@ -336,15 +356,71 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         runCommand += 'export PAMHOME=%s/\n' % os.path.dirname(
             os.path.dirname(self.parentJob.solverVersion))
         
-        runCommand += '%s -np %s -lic CRASHSAF %s.pc > %s.pc.out' % (
-            self.parentJob.solverVersion, self.parentJob.numberOfCores,
-            self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)
+        runCommand += '%s -np %s -lic CRASHSAF' % (
+            self.parentJob.solverVersion, self.parentJob.numberOfCores)
         
         if self.parentJob.inpFile.analysisType == ei.AnalysisTypes.IMPLICIT:
             runCommand += ' -fp 2'
         
         runCommand += ' %s' % self.jobSettings.additionalSolverParams
+        runCommand += ' %s.pc > %s.pc.out' % (
+            self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)
         
+        return '%s\n' % runCommand
+
+    #-------------------------------------------------------------------------
+    
+    def _getDescriptionContent(self):
+        
+        content = '#!/bin/bash\n'
+        content += '#$ -hard -l %s\n' % self._getJobFeatures()
+        content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
+        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
+        content += '#$ -cwd -V\n'
+        content += '#$ -j y\n'
+        content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
+        content += '#$ -p %s\n' % self.parentJob.priority
+#         content += '#$ -v ver_solver=%s\n' % self.parentJob.solverVersion
+#         content += '#$ -v sub_allfiles=%s\n' % int(self.parentJob.inpFile.subAllFiles)
+#         content += '#$ -v ret_allfiles=%s\n' % int(self.parentJob.inpFile.retAllFiles)
+#         content += '#$ -ac verze=%s\n' % self.parentJob.solverVersion
+        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
+        content += '#$ -a %s\n' % self.parentJob.startTime
+        if len(self.user.email) > 0:
+            content += '#$ -M %s\n' % self.user.email
+            content += '#$ -m bes\n'
+                
+        content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
+            self.jobSettings.SCRATCH_PATH, self.user.name)
+        content += 'cd $scratch_dir\n'
+        
+        return content
+    
+    #--------------------------------------------------------------------------
+    
+    def _getJobFeatures(self):
+        
+        features = '%s=%s' % (self.jobSettings.licenseServer.CODE,
+                self.parentJob.getTokensRequired())
+        
+        return features
+
+#==============================================================================
+
+class NastranJobExecutableFile(AbaqusJobExecutableFile):
+    
+    #-------------------------------------------------------------------------
+    
+    def _getRunCommand(self):
+        
+        
+        runCommand = ''
+        runCommand += '%s' % self.parentJob.solverVersion
+        
+        runCommand += ' %s' % self.jobSettings.additionalSolverParams
+        runCommand += ' %s.bdf > %s.bdf.out' % (
+            self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)        
+                
         return '%s\n' % runCommand
 
     #-------------------------------------------------------------------------
@@ -385,3 +461,5 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         return features
     
 #==============================================================================
+
+

@@ -23,6 +23,7 @@ from dns.rdatatype import PTR
 
 ABAQUS_EXECUTION_PROFILE_TYPES = list()
 PAMCRASH_EXECUTION_PROFILE_TYPES = list()
+NASTRAN_EXECUTION_PROFILE_TYPES = list()
 
 #==============================================================================
 
@@ -188,6 +189,32 @@ class PamCrashJob(AbaqusJob):
         tokensRequired += bi.PamcrashLicenseType.getNoOfTokens(self.numberOfCores)
         
         return tokensRequired
+
+#==============================================================================
+
+class NastranJob(AbaqusJob):
+      
+    EXECUTABLE_FILE_TYPE = fi.NastranJobExecutableFile
+
+    #--------------------------------------------------------------------------
+    
+    def setInpFile(self, inpFileName):
+        
+        self.inpFile = fi.NastranInpFile(inpFileName)
+        
+    #--------------------------------------------------------------------------
+    
+    def getTokensRequired(self):
+        
+        if self.fixTokenNumber is not None:
+            return self.fixTokenNumber
+        
+        tokensRequired = 0
+        
+        # obtain number of tokens according to number of cores
+        tokensRequired += bi.NastranLicenseType.getNoOfTokens(self.numberOfCores)
+        
+        return tokensRequired
        
 #==============================================================================
 
@@ -236,7 +263,9 @@ class BaseExecutionProfileType(object):
 
     container = ABAQUS_EXECUTION_PROFILE_TYPES
     SOLVER_TYPE = bi.AbaqusSolverType
-
+    
+    DFT_POSTPROCESSING_OPTION_INDEX = 1
+    
     def __init__(self, parentApplication):
         
         self.parentApplication = parentApplication
@@ -412,6 +441,7 @@ class BaseExecutionProfileType(object):
     def _setPostProcessingType(self):
         
         selector = bi.PostProcessingSelector(self.parentApplication)
+        selector.DFT_OPTION_INDEX = self.DFT_POSTPROCESSING_OPTION_INDEX
         postProcessingType = selector.getSelection()
         
         self.postProcessingType = postProcessingType(self.job)
@@ -463,6 +493,12 @@ class BaseExecutionProfileType(object):
     def getDftJobPriority(self):
         
         return 40, 60, self.job.DFT_PRIORITY
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftPostProcessingOption(self):
+        
+        return self.DFT_POSTPROCESSING_OPTION_INDEX
         
 #==============================================================================
 @utils.registerClass
@@ -565,6 +601,8 @@ class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
     
     NAME = 'License priority - use any free license (reduce CPU and start on any free server)'
     ID = 4
+    
+    DFT_POSTPROCESSING_OPTION_INDEX = 2
     
     #--------------------------------------------------------------------------
 
@@ -705,9 +743,11 @@ class ResourcePriority1ExecutionProfileType(BaseExecutionProfileType):
     
     NAME = 'Resource priority 1 - use preferred license, CPU and server'
     ID = 1
+    
     DFT_LICENSE_TYPE = bi.CommercialLicenseServerType
     DFT_NO_OF_CORES = 32
     DFT_EXECUTION_SERVER_INDEX = 3
+    DFT_POSTPROCESSING_OPTION_INDEX = 2
     
     #--------------------------------------------------------------------------
 
@@ -872,7 +912,7 @@ class AbaqusExecutionProfileSelector(bi.BaseDataSelector):
 class PamCrashExecutionProfileType(BaseExecutionProfileType):
     
     container = PAMCRASH_EXECUTION_PROFILE_TYPES
-    SOLVER_TYPE = bi.AbaqusSolverType
+    SOLVER_TYPE = bi.PamCrashSolverType
     
     NAME = 'PamCrash analysis'
     ID = 0
@@ -883,6 +923,7 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
         self.job = PamCrashJob()
         self.jobSettings = JobExecutionSetting()
         self.user = User()
+        self.postProcessingType = bi.BasePostProcessingType(self.job)
         
         self.inpFileNames = list()
         
@@ -929,7 +970,13 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
         executionServer = hostSelector.getSelection()
         
         self.jobSettings.setExecutionServer(executionServer)        
-               
+    
+    #--------------------------------------------------------------------------
+    
+    def _setPostProcessingType(self):
+        
+        pass
+    
     #--------------------------------------------------------------------------
     
 #     def _setNumberOfGPUCores(self):        
@@ -1048,6 +1095,126 @@ class PamCrashExecutionProfileSelector(AbaqusExecutionProfileSelector):
     DFT_OPTION_INDEX = 1
     profiles = PAMCRASH_EXECUTION_PROFILE_TYPES
 
+#==============================================================================
+@utils.registerClass
+class NastranExecutionProfileType(BaseExecutionProfileType):
+    
+    container = NASTRAN_EXECUTION_PROFILE_TYPES
+    SOLVER_TYPE = bi.NastranSolverType
+    
+    NAME = 'Nastran analysis'
+    ID = 0
+    
+    DFT_NO_OF_CORES = 1
+    DFT_EXECUTION_SERVER_INDEX = 1
+    DFT_LICENSE_SERVER_INDEX = 1
+        
+    def __init__(self, parentApplication):
+        
+        self.parentApplication = parentApplication
+        self.job = NastranJob()
+        self.jobSettings = JobExecutionSetting()
+        self.user = User()
+        self.postProcessingType = bi.BasePostProcessingType(self.job)
+        
+        self.inpFileNames = list()
+    
+    #--------------------------------------------------------------------------
+
+    def _setInputFile(self):
+        
+        inpSelector = bi.NastranInputFileSelector(self.parentApplication)
+        self.inpFileNames = inpSelector.getSelection()
+        
+        self.job.setInpFile(self.inpFileNames[0])
+        
+        logging.info('Selected file(s): %s' % ', '.join([
+            os.path.basename(inpFileName) for inpFileName in self.inpFileNames]))
+        
+    #--------------------------------------------------------------------------
+
+    def _setLicenseServer(self):
+        
+        bi.BaseDataSelector.printSelectionTitle('Available license servers')
+        
+        licenseServer = bi.NastranLicenseServerType
+        
+        logging.info(licenseServer.toOptionLine())
+       
+        self.jobSettings.setLicenseServer(licenseServer)
+
+    #--------------------------------------------------------------------------
+    
+    def _setSolverVersion(self):
+        
+        solverVersionSelector = bi.NastranSolverVersionSelector(self.parentApplication)
+        solverVersion = solverVersionSelector.getSelection()
+        solverVersionPath = solverVersionSelector.VERSIONS.getSolverPath(solverVersion) 
+        
+        self.job.setSolverVersion(solverVersionPath)
+        
+    #--------------------------------------------------------------------------
+    
+    def _setExecutionServer(self):
+        
+        hostSelector = bi.NastranExecutionServerSelector(self.parentApplication)
+        hostSelector.DFT_OPTION_INDEX = self.getDftExectionServerOption()
+        executionServer = hostSelector.getSelection()
+        
+        self.jobSettings.setExecutionServer(executionServer)     
+
+    #--------------------------------------------------------------------------
+    
+    def _setNumberOfCores(self):
+                
+        self.job.setNumberOfCores(self.DFT_NO_OF_CORES)
+        
+    #--------------------------------------------------------------------------
+    
+    def _setNumberOfGPUCores(self):        
+                        
+        self.job.setNumberOfGPUCores(0)
+            
+    #--------------------------------------------------------------------------
+    
+    def _setPostProcessingType(self):
+        
+        pass
+    
+    #--------------------------------------------------------------------------
+
+    def getDftLicenseServerOption(self):
+                
+        return self.DFT_LICENSE_SERVER_INDEX
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftExectionServerOption(self):
+        
+        return self.DFT_EXECUTION_SERVER_INDEX
+    
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfCores(self):   
+    
+        maxValue = 1#self.jobSettings.executionServer.NO_OF_CORES
+        minValue = 1
+        
+        return minValue, maxValue, self.DFT_NO_OF_CORES
+    
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfGpus(self):
+                    
+        return 0, 0, 0
+
+#==============================================================================
+
+class NastranExecutionProfileSelector(AbaqusExecutionProfileSelector):
+    
+    DFT_OPTION_INDEX = 1
+    profiles = NASTRAN_EXECUTION_PROFILE_TYPES
+            
 #==============================================================================
 
 class User(object):
@@ -1409,7 +1576,7 @@ class RunningJob(object):
         
         queueName = self._attributes['queue_name']
         if queueName is None:
-            queueName = ''
+            queueName = self._attributes['soft_req_queue']
         
         string += ''.join(lineFormat).format(
             self._attributes['JB_job_number'], self._attributes['JAT_prio'],

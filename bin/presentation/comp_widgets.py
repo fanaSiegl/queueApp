@@ -33,9 +33,10 @@ def saveExecute(method, *args):
             traceback.print_exc()
             parentApplication.restoreOverrideCursor()
             
-            QtGui.QMessageBox.critical(
-                parentApplication.mainWindow, '%s' % parentApplication.APPLICATION_NAME,
-                str(e))
+            if hasattr(parentApplication, 'mainWindow'):
+                QtGui.QMessageBox.critical(
+                    parentApplication.mainWindow, '%s' % parentApplication.APPLICATION_NAME,
+                    str(e))
         
         parentApplication.restoreOverrideCursor()
         
@@ -134,7 +135,10 @@ class BaseSubmitWidget(QtGui.QWidget):
 #         self.jobs = list()
         self.profile = None
         
+        self._setupBaseWidgets()
         self._setupWidgets()
+        self._setupCommonWidgets()
+        
         self._setupConnections()
         
         # initialise
@@ -161,6 +165,9 @@ class BaseSubmitWidget(QtGui.QWidget):
             *self.profile.getDftJobPriority())
         
         self.postProcessingSelectorWidget.setupOptions()
+        
+        self.postProcessingSelectorWidget.setDefaultOption(
+            self.profile.getDftPostProcessingOption())
                     
     #---------------------------------------------------------------------------
     
@@ -178,7 +185,8 @@ class BaseSubmitWidget(QtGui.QWidget):
         return self.workDir
     
     #---------------------------------------------------------------------------
-#TODO: this is duplicate to the main.py    
+#TODO: this is duplicate to the main.py
+    @saveExecute
     def _checkProjectPath(self, path):
         
         for allowedPath in ei.ALLOWED_PROJECT_PATHS:
@@ -191,7 +199,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         logging.error(message)
         
         raise bi.DataSelectorException(message)
-
+        
     #---------------------------------------------------------------------------
     @saveExecute
     def submit(self):
@@ -235,10 +243,10 @@ class BaseSubmitWidget(QtGui.QWidget):
                 utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
         
         self.parentApplication.showInfoMessage(message)
-                
+    
     #--------------------------------------------------------------------------
-
-    def _setupWidgets(self):
+    
+    def _setupBaseWidgets(self):
         
         self.layout = QtGui.QVBoxLayout()
         self.setLayout(self.layout)
@@ -247,72 +255,25 @@ class BaseSubmitWidget(QtGui.QWidget):
         mainSplitter.setOrientation(QtCore.Qt.Horizontal)
         self.layout.addWidget(mainSplitter)
         
-        leftPaneWidget = QtGui.QWidget()
-        leftPaneWidget.setLayout(QtGui.QVBoxLayout())
-        rightPaneWidget = QtGui.QWidget()
-        rightPaneWidget.setLayout(QtGui.QVBoxLayout())
+        self.leftPaneWidget = QtGui.QWidget()
+        self.leftPaneWidget.setLayout(QtGui.QVBoxLayout())
+        self.rightPaneWidget = QtGui.QWidget()
+        self.rightPaneWidget.setLayout(QtGui.QVBoxLayout())
         
-        mainSplitter.addWidget(leftPaneWidget)
-        mainSplitter.addWidget(rightPaneWidget)
+        mainSplitter.addWidget(self.leftPaneWidget)
+        mainSplitter.addWidget(self.rightPaneWidget)
+    
+    #--------------------------------------------------------------------------
+
+    def _setupWidgets(self):
         
-        # add selectors        
-        # right pane
-#         selectorItem = bi.InputFileSelector(self)
-#         self.workingDirectorySelectorWidget = bw.WorkingDirectorySelectorWidget(selectorItem)
-#         rightPaneWidget.layout().addWidget(self.workingDirectorySelectorWidget)
+        pass
+    
+    #--------------------------------------------------------------------------
+
+    def _setupCommonWidgets(self):
         
-        selectorItem = ci.AbaqusExecutionProfileSelector(self)
-        self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
-                
-        selectorItem = bi.LicenseServerSelector(self)
-        self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
-        
-        selectorItem = bi.SolverVersionSelector(self)
-        self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
-        
-        groupLayout = QtGui.QVBoxLayout()
-        group = QtGui.QGroupBox('Parameters')
-        group.setLayout(groupLayout)
-        rightPaneWidget.layout().addWidget(group)
-        
-        self.noOfCoresSelectorWidget = bw.NoOfCoresSelectorWidget()
-        groupLayout.addWidget(self.noOfCoresSelectorWidget)
-        
-        self.noOfGpusSelectorWidget = bw.NoOfGpusSelectorWidget()
-        groupLayout.addWidget(self.noOfGpusSelectorWidget)
-        
-        self.jobPrioritySelectorWidget = bw.JobPrioritySelectorWidget()
-        groupLayout.addWidget(self.jobPrioritySelectorWidget)
-        
-        self.jobDescriptionSelectorWidget = bw.JobDescriptionSelectorWidget()
-        groupLayout.addWidget(self.jobDescriptionSelectorWidget)
-        
-        self.solverParametersSelectorWidget = bw.SolverParametersSelectorWidget()
-        groupLayout.addWidget(self.solverParametersSelectorWidget)
-        
-        self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
-        groupLayout.addWidget(self.jobStartTimeSelectorWidget)
-        
-        selectorItem = bi.PostProcessingSelector(self)
-        self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
-        
-        
-        # left pane
-        selectorItem = bi.InputFileSelector(self)
-        self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
-        leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
-        
-        selectorItem = bi.ExecutionServerSelector(self)
-        self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
-        leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
-        
-        rightPaneWidget.layout().addStretch()
-#         rightPaneWidget.layout().addStretch()
-#         self.layout.addStretch()
+        self.rightPaneWidget.layout().addStretch()
         
         buttonLayout = QtGui.QHBoxLayout()
         self.layout.addLayout(buttonLayout)
@@ -475,56 +436,27 @@ class AbaqusSubmitWidget(BaseSubmitWidget):
     ID = 0
     NAME = 'Submit ABAQUS'
     
-
-    
-#===============================================================================
-@utils.registerClass
-class PamCrashSubmitWidget(BaseSubmitWidget):
-    
-    ID = 1
-    NAME = 'Submit PAMCRASH'
-    
-    #--------------------------------------------------------------------------
+#--------------------------------------------------------------------------
 
     def _setupWidgets(self):
         
-        self.layout = QtGui.QVBoxLayout()
-        self.setLayout(self.layout)
-        
-        mainSplitter = QtGui.QSplitter()
-        mainSplitter.setOrientation(QtCore.Qt.Horizontal)
-        self.layout.addWidget(mainSplitter)
-        
-        leftPaneWidget = QtGui.QWidget()
-        leftPaneWidget.setLayout(QtGui.QVBoxLayout())
-        rightPaneWidget = QtGui.QWidget()
-        rightPaneWidget.setLayout(QtGui.QVBoxLayout())
-        
-        mainSplitter.addWidget(leftPaneWidget)
-        mainSplitter.addWidget(rightPaneWidget)
-        
-        # add selectors        
-        # right pane
-#         selectorItem = bi.PamcrashInputFileSelector(self)
-#         self.workingDirectorySelectorWidget = bw.WorkingDirectorySelectorWidget(selectorItem)
-#         rightPaneWidget.layout().addWidget(self.workingDirectorySelectorWidget)
-        
-        selectorItem = ci.PamCrashExecutionProfileSelector(self)
+        # add selectors                
+        selectorItem = ci.AbaqusExecutionProfileSelector(self)
         self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
+        self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
                 
-        selectorItem = bi.PamCrashLicenseServerSelector(self)
+        selectorItem = bi.LicenseServerSelector(self)
         self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
+        self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
         
-        selectorItem = bi.PamCrashSolverVersionSelector(self)
+        selectorItem = bi.SolverVersionSelector(self)
         self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
+        self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
         
         groupLayout = QtGui.QVBoxLayout()
         group = QtGui.QGroupBox('Parameters')
         group.setLayout(groupLayout)
-        rightPaneWidget.layout().addWidget(group)
+        self.rightPaneWidget.layout().addWidget(group)
         
         self.noOfCoresSelectorWidget = bw.NoOfCoresSelectorWidget()
         groupLayout.addWidget(self.noOfCoresSelectorWidget)
@@ -546,27 +478,143 @@ class PamCrashSubmitWidget(BaseSubmitWidget):
         
         selectorItem = bi.PostProcessingSelector(self)
         self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
+        self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
+        
+        
+        # left pane
+        selectorItem = bi.InputFileSelector(self)
+        self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
+        self.leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
+        
+        selectorItem = bi.ExecutionServerSelector(self)
+        self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
+        self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
+        
+    
+#===============================================================================
+@utils.registerClass
+class PamCrashSubmitWidget(BaseSubmitWidget):
+    
+    ID = 1
+    NAME = 'Submit PAMCRASH'
+    
+    #--------------------------------------------------------------------------
+
+    def _setupWidgets(self):
+                
+        # add selectors        
+        # right pane        
+        selectorItem = ci.PamCrashExecutionProfileSelector(self)
+        self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
+                
+        selectorItem = bi.PamCrashLicenseServerSelector(self)
+        self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
+        
+        selectorItem = bi.PamCrashSolverVersionSelector(self)
+        self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
+        
+        groupLayout = QtGui.QVBoxLayout()
+        group = QtGui.QGroupBox('Parameters')
+        group.setLayout(groupLayout)
+        self.rightPaneWidget.layout().addWidget(group)
+        
+        self.noOfCoresSelectorWidget = bw.NoOfCoresSelectorWidget()
+        groupLayout.addWidget(self.noOfCoresSelectorWidget)
+        
+        self.noOfGpusSelectorWidget = bw.NoOfGpusSelectorWidget()
+        groupLayout.addWidget(self.noOfGpusSelectorWidget)
+        
+        self.jobPrioritySelectorWidget = bw.JobPrioritySelectorWidget()
+        groupLayout.addWidget(self.jobPrioritySelectorWidget)
+        
+        self.jobDescriptionSelectorWidget = bw.JobDescriptionSelectorWidget()
+        groupLayout.addWidget(self.jobDescriptionSelectorWidget)
+        
+        self.solverParametersSelectorWidget = bw.SolverParametersSelectorWidget()
+        groupLayout.addWidget(self.solverParametersSelectorWidget)
+        
+        self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
+        groupLayout.addWidget(self.jobStartTimeSelectorWidget)
+        
+        selectorItem = bi.PostProcessingSelector(self)
+        self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
+        self.postProcessingSelectorWidget.setEnabled(False)
         
         # left pane
         selectorItem = bi.PamcrashInputFileSelector(self)
         self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
-        leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
+        self.leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
         
         selectorItem = bi.PamCrashExecutionServerSelector(self)
         self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
-        leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
+        self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
         
-        rightPaneWidget.layout().addStretch()
-#         rightPaneWidget.layout().addStretch()
-#         self.layout.addStretch()
-        
-        buttonLayout = QtGui.QHBoxLayout()
-        self.layout.addLayout(buttonLayout)
-        buttonLayout.addStretch()
+
+#===============================================================================
+@utils.registerClass
+class NastranSubmitWidget(BaseSubmitWidget):
+    
+    ID = 2
+    NAME = 'Submit NASTRAN'
+    
+    #--------------------------------------------------------------------------
+
+    def _setupWidgets(self):
                 
-        self.submitButton = QtGui.QPushButton('Submit')
-        buttonLayout.addWidget(self.submitButton)
-            
+        # add selectors        
+        # right pane        
+        selectorItem = ci.NastranExecutionProfileSelector(self)
+        self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
+                
+        selectorItem = bi.NastranLicenseServerSelector(self)
+        self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
+        
+        selectorItem = bi.NastranSolverVersionSelector(self)
+        self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
+        
+        groupLayout = QtGui.QVBoxLayout()
+        group = QtGui.QGroupBox('Parameters')
+        group.setLayout(groupLayout)
+        self.rightPaneWidget.layout().addWidget(group)
+        
+        self.noOfCoresSelectorWidget = bw.NoOfCoresSelectorWidget()
+        groupLayout.addWidget(self.noOfCoresSelectorWidget)
+                
+        self.noOfGpusSelectorWidget = bw.NoOfGpusSelectorWidget()
+        groupLayout.addWidget(self.noOfGpusSelectorWidget)
+        
+        self.jobPrioritySelectorWidget = bw.JobPrioritySelectorWidget()
+        groupLayout.addWidget(self.jobPrioritySelectorWidget)
+        
+        self.jobDescriptionSelectorWidget = bw.JobDescriptionSelectorWidget()
+        groupLayout.addWidget(self.jobDescriptionSelectorWidget)
+        
+        self.solverParametersSelectorWidget = bw.SolverParametersSelectorWidget()
+        groupLayout.addWidget(self.solverParametersSelectorWidget)
+        
+        self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
+        groupLayout.addWidget(self.jobStartTimeSelectorWidget)
+        
+        selectorItem = bi.PostProcessingSelector(self)
+        self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
+        self.postProcessingSelectorWidget.setEnabled(False)
+        
+        # left pane
+        selectorItem = bi.NastranInputFileSelector(self)
+        self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
+        self.leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
+        
+        selectorItem = bi.NastranExecutionServerSelector(self)
+        self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
+        self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
+                
 #===============================================================================
 

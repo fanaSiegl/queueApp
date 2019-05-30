@@ -61,10 +61,22 @@ class PamcrashSolverVersions(AbaqusSolverVersions):
 
 #==============================================================================
 
+class NastranSolverVersions(AbaqusSolverVersions):
+    
+    SOLVER_LIST = [
+        'NASTRAN nas20171']
+    SOLVER_PATHS = {
+        'NASTRAN nas20171' :'/usr/local/bin/nas20171'
+        }
+    DFT_VERSION = 'NASTRAN nas20171'
+    
+#==============================================================================
+
 class FileExtensions(object):
     
     ABAQUS_INPUT = '.inp'
     PAMCRASH_INPUT = '.pc'
+    NASTRAN_INPUT = '.bdf'
 
 #==============================================================================
 

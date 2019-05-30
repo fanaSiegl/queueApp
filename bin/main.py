@@ -207,7 +207,7 @@ class QueueApplication(QtGui.QApplication):
 
 class MainWindow(QtGui.QMainWindow):
 
-    WIDTH = 1300
+    WIDTH = 1500
     HEIGHT = 700
     FONT_POINT_SIZE = 10
 
@@ -222,12 +222,12 @@ class MainWindow(QtGui.QMainWindow):
         self._setupWidgets()
 
         self._setWindowGeometry()
-#         self._setupConnections()
+        self._setupConnections()
         
-        self.runningJobFileListDock.setVisible(False)
-        self.fileContentTrackerDock.setVisible(False)
-        
-        self.runningJobFileListDock.setFloating(True)
+#         self.runningJobFileListDock.setVisible(False)
+#         self.fileContentTrackerDock.setVisible(False)
+#         
+#         self.runningJobFileListDock.setFloating(True)
 #         self.fileContentTrackerDock.setFloating(True)
     
     #---------------------------------------------------------------------------
@@ -261,24 +261,40 @@ class MainWindow(QtGui.QMainWindow):
         # add docks
         self.runningJobFileListWidget = bw.RunningJobFileListWidget(self)
         self.runningJobFileListDock = bw.createDock(self, 'Job file list', self.runningJobFileListWidget)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.runningJobFileListDock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.runningJobFileListDock)
 #         self.setDockGeometry(self.runningJobFileListDock)
         
         self.fileContentTrackerWidget = bw.FileContentTrackerWidget(self)
         self.fileContentTrackerDock = bw.createDock(
             self, 'File content tracker', self.fileContentTrackerWidget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.fileContentTrackerDock)
-        
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.fileContentTrackerDock)
     
     #---------------------------------------------------------------------------
 
-#     def _setupConnections(self):
+    def _setupConnections(self):
+        
+        self.centralWidget().tabWidget.currentChanged.connect(
+            self._manageDockVisibility)
+        
 #         
 #         self.runningJobFileListDock.visibilityChanged.connect(
 #             lambda: self._setDockGeometry(self.runningJobFileListDock))
 #         self.fileContentTrackerDock.visibilityChanged.connect(
 #             lambda: self._setDockGeometry(self.fileContentTrackerDock))
     
+    #---------------------------------------------------------------------------
+    
+    def _manageDockVisibility(self):
+        
+        if self.centralWidget().tabWidget.currentIndex() == 0:
+            
+            self.runningJobFileListDock.show()
+            self.fileContentTrackerDock.show()
+        else:
+            self.runningJobFileListDock.hide()
+            self.fileContentTrackerDock.hide()
+        
     #--------------------------------------------------------------------------
 
     def setDockGeometry(self, dock):
@@ -556,26 +572,128 @@ class Qpam(Qaba):
         self.profile.jobSettings.setAdditionalSolverParams(self.args.param)
 
 #==============================================================================
+    
+class Qnas(Qaba):
+    
+    APPLICATION_NAME = 'qnas application'
+    
+    def setProfile(self):
+                
+        profileSelector = ci.NastranExecutionProfileSelector(self)
+        profileType = profileSelector.getSelection()
+        
+        return profileType(self)
+    
+    #--------------------------------------------------------------------------
+    
+    def setupFromParameters(self):
+        
+        self.profile = ci.NastranExecutionProfileType(self)
+        
+        # set input file
+        fileNames = [os.path.abspath(fileName) for fileName in self.args.inpFilePath]
+        self.profile.inpFileNames = fileNames
+        self.profile.job.setInpFile(fileNames[0])
+        
+        # set license server
+        licenseServer = bi.NastranLicenseServerType
+        self.profile.jobSettings.setLicenseServer(licenseServer)
+        
+        # set solver version
+        self.profile.job.setSolverVersion(self.args.solver)
+        
+        # set execution server
+        executionServerName = self.args.host + '.cax.lan'
+        executionServer = ci.Resources.executionServers[executionServerName]
+        self.profile.jobSettings.setExecutionServer(executionServer)
+        
+        # set job parameters
+        self.profile.job.setDescription(self.args.des)
+        self.profile.job.setStartTime(self.args.start)
+        self.profile.job.setNumberOfCores(self.profile.DFT_NO_OF_CORES)
+        self.profile.job.setNumberOfGPUCores(0)
+        self.profile.job.setPriority(self.args.prio)
+        self.profile.jobSettings.setAdditionalSolverParams(self.args.param)
+        
+#==============================================================================
 
 class Queue(object):
-    
+     
     APPLICATION_NAME = 'q application'
-    
+     
     def __init__(self):
-        
+         
         utils.initiateLogging(self, logging.INFO)
-        
+         
         ci.Resources.initialise()
-#         bi.BaseExecutionServerType.connectResources2()
         self.q = ci.Queue()
-        
+         
         while True:
-#             bi.BaseExecutionServerType.connectResources2()
             ci.Resources.updateState()
             os.system('clear')
             print self.q
             time.sleep(5)
         
+
+# class Queue(QtCore.QCoreApplication):
+#     
+#     APPLICATION_NAME = 'q application'
+#     
+#     def __init__(self, args):
+#         
+#         super(Queue, self).__init__(args)
+#         
+#         utils.initiateLogging(self, logging.INFO)
+#         
+#         ci.Resources.initialise()
+#         
+#         self.q = ci.Queue()
+#         self.signalGenerator = bw.SignalGenerator()
+#         
+#         self._setupConnections()
+#         
+#         self._updateQueueStatus()
+#         
+# #         self.setGeometry(1, 1, 1, 1)
+# #         self.show()
+# 
+#         self.processEvents()
+#         
+#     #---------------------------------------------------------------------------
+# 
+#     def _setupConnections(self):
+#         
+#         self.signalGenerator.updateStatus.connect(self._updateQueueStatus)
+#     
+#     #---------------------------------------------------------------------------
+#     
+#     def _updateQueueStatus(self):
+#         
+#         ci.Resources.updateState()
+#         os.system('clear')
+#         print self.q
+#     
+#     #---------------------------------------------------------------------------
+#     
+# #     def event(self, event):
+# #         
+# #         print 'ewserwsf'
+# #         
+# #         event.accept()
+#     
+#     #---------------------------------------------------------------------------
+#         
+#     def keyPressEvent(self, event):
+#         
+#         print 'ewserwsf'
+#         
+#         if event.key() == QtCore.Qt.Key_Q:
+#             print "Killing"
+#             self.deleteLater()
+# #         elif event.key() == QtCore.Qt.Key_Enter:
+# #             self.proceed()
+#         event.accept()
+
 
 #==============================================================================
             
