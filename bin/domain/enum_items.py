@@ -55,7 +55,7 @@ class PamcrashSolverVersions(AbaqusSolverVersions):
         'PAMCRASH v2015.03',
         'PAMCRASH v2016.06']
     SOLVER_PATHS = {
-        'PAMCRASH v2015.03' :'/usr1/applications/pamcrash/v2015.03/pamcrash_safe/2015.03/pamworld',
+        'PAMCRASH v2015.03' : '/usr1/applications/pamcrash/v2015.03/pamcrash_safe/2015.03/pamworld',
         'PAMCRASH v2016.06' : '/usr1/applications/pamcrash/v2016.06/pamcrash_safe/2016.06/pamworld'}
     DFT_VERSION = 'PAMCRASH v2015.03'
 
@@ -66,9 +66,18 @@ class NastranSolverVersions(AbaqusSolverVersions):
     SOLVER_LIST = [
         'NASTRAN nas20171']
     SOLVER_PATHS = {
-        'NASTRAN nas20171' :'/usr/local/bin/nas20171'
-        }
+        'NASTRAN nas20171' : '/usr/local/bin/nas20171'}
     DFT_VERSION = 'NASTRAN nas20171'
+
+#==============================================================================
+
+class ToscaSolverVersions(AbaqusSolverVersions):
+    
+    SOLVER_LIST = [
+        'tosca19']
+    SOLVER_PATHS = {
+        'tosca19' : 'tosca19'}
+    DFT_VERSION = 'tosca19'
     
 #==============================================================================
 
@@ -77,6 +86,7 @@ class FileExtensions(object):
     ABAQUS_INPUT = '.inp'
     PAMCRASH_INPUT = '.pc'
     NASTRAN_INPUT = '.bdf'
+    TOSCA_INPUT = '.par'
 
 #==============================================================================
 

@@ -16,6 +16,8 @@ import file_items as fi
 
 ABAQUS_INP_FILE_PATH = os.path.join(utils.PATH_RES, 'test_files', 'ABAQUS')
 PAMCRASH_INP_FILE_PATH = os.path.join(utils.PATH_RES, 'test_files', 'PamCrash')
+NASTRAN_INP_FILE_PATH = os.path.join(utils.PATH_RES, 'test_files', 'NASTRAN')
+TOSCA_INP_FILE_PATH = os.path.join(utils.PATH_RES, 'test_files', 'TOSCA')
 
 #==============================================================================
 
@@ -76,7 +78,7 @@ class TestAbaqusInpFile(unittest.TestCase):
         
     #-------------------------------------------------------------------------
     
-    def test_analyseContent_restart(self):
+    def test_analyseContentRestart(self):
         
         testInpFile = os.path.join(
             ABAQUS_INP_FILE_PATH, 'restart','w_skew_plate_linear.inp')
@@ -95,7 +97,7 @@ class TestAbaqusInpFile(unittest.TestCase):
 
 class TestPamCrashInpFile(unittest.TestCase):
     
-    def test_analyseContent_includeFiles(self):
+    def test_analyseContentIncludeFiles(self):
         
         testInpFile = os.path.join(
             PAMCRASH_INP_FILE_PATH, 'SK3165EUB_BIU_003_001_103_003_2015.pc')
@@ -103,6 +105,48 @@ class TestPamCrashInpFile(unittest.TestCase):
         inputFile = fi.PamCrashInpFile(testInpFile)
         self.assertEqual(len(inputFile.includeFiles), 6)
         self.assertEqual(inputFile.analysisType, ei.AnalysisTypes.EXPLICIT)
+    
+    #-------------------------------------------------------------------------
+    
+    def test_checkTitleName(self):
         
+        testInpFile = os.path.join(
+            PAMCRASH_INP_FILE_PATH, 'SK3165EUB_BIU_003_001_103_003_2016.pc')
         
+        self.assertRaises(fi.PamCrashInpFileException,
+            lambda: fi.PamCrashInpFile(testInpFile))
+
+        
+#==============================================================================
+
+class TestNastranInpFile(unittest.TestCase):
+    
+    def test_analyseContentIncludeFiles(self):
+        
+        testInpFile = os.path.join(
+            NASTRAN_INP_FILE_PATH, 'LEAF-JPN_VC_NCAP-NVH_BENDING_001_04.bdf')
+        
+        inputFile = fi.NastranInpFile(testInpFile)
+        self.assertEqual(len(inputFile.includeFiles), 1)        
+        self.assertEqual(inputFile.includeFiles[0], 'LEAF-NVH_no_axes_01.inc')
+        
+        testInpFile = os.path.join(NASTRAN_INP_FILE_PATH,
+            'LEAF-JPN_VC_NCAP-NVH_BENDING_001_05_missing_include.bdf')
+        self.assertRaises(fi.InpFileException,
+            lambda: fi.NastranInpFile(testInpFile))
+
+
+#==============================================================================
+
+class TestToscaInpFile(unittest.TestCase):
+    
+    def test_analyseContentIncludeFiles(self):
+        
+        testInpFile = os.path.join(
+            TOSCA_INP_FILE_PATH, 'control_arm_topo_controller_casting_01.par')
+        
+        inputFile = fi.ToscaInpFile(testInpFile)
+        self.assertEqual(len(inputFile.includeFiles), 1)        
+        self.assertEqual(inputFile.includeFiles[0], 'control_arm_whole.inp')
+                
 #==============================================================================

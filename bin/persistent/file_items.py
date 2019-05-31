@@ -10,6 +10,11 @@ from string import Template
 
 from domain import enum_items as ei
 
+
+#==============================================================================
+
+class InpFileException(Exception): pass
+
 #==============================================================================
 
 class AbaqusInpFileException(Exception): pass
@@ -17,6 +22,10 @@ class AbaqusInpFileException(Exception): pass
 #==============================================================================
 
 class PamCrashInpFileException(Exception): pass
+
+#==============================================================================
+
+class NastranInpFileException(Exception): pass
 
 #==============================================================================
 
@@ -95,7 +104,7 @@ class AbaqusInpFile(object):
             if not os.path.exists(includedFileAbs):
                 message = 'File defined in the input file does not exist!'
                 message += '\nMissing file: %s' % includedFileAbs
-                raise AbaqusInpFileException(message)
+                raise InpFileException(message)
                    
     #-------------------------------------------------------------------------
     
@@ -150,30 +159,14 @@ class PamCrashInpFile(AbaqusInpFile):
                 except Exception as e:
                     raise PamCrashInpFileException(
                          'Unknown analysis type: %s' % line)
-                  
-#             elif line.startswith('*STEP'):
-#                 if 'PERTURBATION' in line:
-#                     self.stepPerturbation = True
-#             elif line.startswith('*DYNAMIC'):
-#                 if 'EXPLICIT' in line:
-#                     self.dynamicsExplicit = True
-#             elif line.startswith('*RESTART'):
-#                 if 'READ' in line:
-#                     self.subAllFiles = True
-#                 elif 'WRITE' in line:
-#                     self.retAllFiles = True
-#             elif 'FILE=' in line and '.fil' in line:
-#                 parts = rawLine.split()
-#                 fillPart = parts[-1].strip()
-#                 fillFile = fillPart.split('=')[-1]               
-#                 self.fillFiles.append(fillFile)
-#             elif '*FREQUENCY' in line:
-#                 parts = line.split(',')
-#                 for part in parts:
-#                     if 'EIGENSOLVER' in part:
-#                         params = part.split('=')
-#                         self.eigSolver = params[-1].strip()
-            
+            elif line.startswith('TITLE'):
+                parts = line.split()
+                title = parts[-1].strip()
+                if title != self.baseName:
+                    raise PamCrashInpFileException(
+                        'TITLE parameter is not consistent with the given file name!\n"%s" != "%s".\nThis may cause unwanted overwriting of existing result!' % (
+                            title, self.baseName))
+                    
         fi.close()
 
 #==============================================================================
@@ -187,12 +180,60 @@ class NastranInpFile(AbaqusInpFile):
         self.dirName = os.path.dirname(bdfFileName)
         
         self.includeFiles = list()
-        self.analysisType = None
         self.subAllFiles = False
                 
         self._analyseContent()
         self._checkIncludedFiles(self.includeFiles)
+    
+    #-------------------------------------------------------------------------
+    
+    def _analyseContent(self):
+        
+        fi = open(self.fileName, 'rt')
+        
+        for line in fi.readlines():
+            # line with commands is non-case sensitive except parameters
+            rawLine = line
+            line = line.upper()
+            if line.startswith('INCLUDE'):
+                parts = rawLine.split()
+                includeFile = parts[-1].strip('"').strip("'")
+                              
+                self.includeFiles.append(includeFile)
+            
 
+#==============================================================================
+
+class ToscaInpFile(AbaqusInpFile):
+    
+    def __init__(self, parFileName):
+        
+        self.fileName = parFileName
+        self.baseName = os.path.splitext(os.path.basename(parFileName))[0]
+        self.dirName = os.path.dirname(parFileName)
+        
+        self.includeFiles = list()
+        self.subAllFiles = False
+                
+        self._analyseContent()
+        self._checkIncludedFiles(self.includeFiles)
+    
+    #-------------------------------------------------------------------------
+    
+    def _analyseContent(self):
+        
+        fi = open(self.fileName, 'rt')
+        
+        for line in fi.readlines():
+            # line with commands is non-case sensitive except parameters
+            rawLine = line
+            line = line.upper().strip()
+            if line.startswith('FILE'):
+                parts = rawLine.split('=')
+                includeFile = parts[-1].strip()
+                              
+                self.includeFiles.append(includeFile)
+    
 #==============================================================================
 
 class AbaqusEnvConfigFile(object):    
@@ -227,8 +268,8 @@ class AbaqusJobExecutableFile(object):
         
         content = self._getDescriptionContent()
 
-        content += '/bin/uname -a\n\n'
-        content += '\necho "Starting %s"\n' % self.parentProfile.SOLVER_TYPE.NAME#self.SOLVER_NAME
+        content += '\n/bin/uname -a\n\n'
+        content += 'echo "Starting %s"\n' % self.parentProfile.SOLVER_TYPE.NAME#self.SOLVER_NAME
         content += self._getRunCommand()
         content += 'echo "%s finished"\n' % self.parentProfile.SOLVER_TYPE.NAME#self.SOLVER_NAME
         content += self.postProcessingType.getContent()
@@ -407,7 +448,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
 
 #==============================================================================
 
-class NastranJobExecutableFile(AbaqusJobExecutableFile):
+class NastranJobExecutableFile(PamCrashJobExecutableFile):
     
     #-------------------------------------------------------------------------
     
@@ -422,34 +463,6 @@ class NastranJobExecutableFile(AbaqusJobExecutableFile):
             self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)        
                 
         return '%s\n' % runCommand
-
-    #-------------------------------------------------------------------------
-    
-    def _getDescriptionContent(self):
-        
-        content = '#!/bin/bash\n'
-        content += '#$ -hard -l %s\n' % self._getJobFeatures()
-        content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
-        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
-        content += '#$ -cwd -V\n'
-        content += '#$ -j y\n'
-        content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
-        content += '#$ -p %s\n' % self.parentJob.priority
-#         content += '#$ -v ver_solver=%s\n' % self.parentJob.solverVersion
-#         content += '#$ -v sub_allfiles=%s\n' % int(self.parentJob.inpFile.subAllFiles)
-#         content += '#$ -v ret_allfiles=%s\n' % int(self.parentJob.inpFile.retAllFiles)
-#         content += '#$ -ac verze=%s\n' % self.parentJob.solverVersion
-        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
-        content += '#$ -a %s\n' % self.parentJob.startTime
-        if len(self.user.email) > 0:
-            content += '#$ -M %s\n' % self.user.email
-            content += '#$ -m bes\n'
-                
-        content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
-            self.jobSettings.SCRATCH_PATH, self.user.name)
-        content += 'cd $scratch_dir\n'
-        
-        return content
     
     #--------------------------------------------------------------------------
     
@@ -462,4 +475,43 @@ class NastranJobExecutableFile(AbaqusJobExecutableFile):
     
 #==============================================================================
 
-
+class ToscaJobExecutableFile(PamCrashJobExecutableFile):
+    
+    #-------------------------------------------------------------------------
+    
+    def _getRunCommand(self):
+        
+        
+        runCommand = ''
+        runCommand += '%s -cpus %s -scpus %s' % (self.parentJob.solverVersion,
+            self.parentJob.numberOfCores, self.parentJob.numberOfSolverCores)
+        
+        runCommand += ' %s' % self.jobSettings.additionalSolverParams
+        runCommand += ' %s.par > %s.par.out' % (
+            self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)        
+                
+        return '%s\n' % runCommand
+    
+    #-------------------------------------------------------------------------
+    
+    def _getDescriptionContent(self):
+        
+        content = '#!/bin/bash\n'
+#         content += '#$ -hard -l %s\n' % self._getJobFeatures()
+        content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
+        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
+        content += '#$ -cwd -V\n'
+        content += '#$ -j y\n'
+        content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
+        content += '#$ -p %s\n' % self.parentJob.priority
+        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
+        content += '#$ -a %s\n' % self.parentJob.startTime
+        if len(self.user.email) > 0:
+            content += '#$ -M %s\n' % self.user.email
+            content += '#$ -m bes\n'
+                
+        content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
+            self.jobSettings.SCRATCH_PATH, self.user.name)
+        content += 'cd $scratch_dir\n'
+        
+        return content

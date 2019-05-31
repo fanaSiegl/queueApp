@@ -87,6 +87,25 @@ optional arguments:
   -param PARAM          Additional ABAQUS parameters: "-x y -xx yy" (max 15
                         characters).
 
+qn
+--
+
+submits NASTRAN job to Grid Engine
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -bdf inp_path         NASTRAN Input file path.
+  -solver {NASTRAN nas20171}
+                        NASTRAN solver version. (default=NASTRAN nas20171)
+  -host {mb-so1,mb-so2}
+                        Calculation host. (default=mb-so3)
+  -prio PRIO            Job priority. (default=50)
+  -start START          Job start time. (default=05301530)
+  -des DES              Job description (max. 15 characters).
+  -param PARAM          Additional ABAQUS parameters: "-x y -xx yy" (max 15
+                        characters).
+
+
 '''
 
 #=========================== to be modified ===================================

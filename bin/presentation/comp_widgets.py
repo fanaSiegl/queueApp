@@ -12,6 +12,9 @@ from domain import utils
 from domain import base_items as bi
 from domain import comp_items as ci
 from domain import enum_items as ei
+from domain import selector_items as si
+from domain import profile_items as pi
+
 import base_widgets as bw
 
 #===============================================================================
@@ -198,14 +201,14 @@ class BaseSubmitWidget(QtGui.QWidget):
         
         logging.error(message)
         
-        raise bi.DataSelectorException(message)
+        raise si.DataSelectorException(message)
         
     #---------------------------------------------------------------------------
     @saveExecute
     def submit(self):
                 
         if len(self.profile.inpFileNames) == 0:
-            raise bi.DataSelectorException('No files selected!')
+            raise si.DataSelectorException('No files selected!')
         
         message = ''
         for inpFileName in self.profile.inpFileNames:
@@ -223,7 +226,7 @@ class BaseSubmitWidget(QtGui.QWidget):
                         newJob.inpFile.baseName, ei.FileExtensions.ABAQUS_INPUT))
                  
                 if not restartInpFileName:
-                    raise bi.DataSelectorException('No restart file selected!')
+                    raise si.DataSelectorException('No restart file selected!')
                 
                 logging.debug('Selected restart file: %s' % restartInpFileName)
                          
@@ -315,7 +318,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.inputFileSelectorWidget.setupInputFiles()
             
     #--------------------------------------------------------------------------
-
+    @saveExecute
     def _setupInputFiles(self, inputFiles):
         
         self.profile.inpFileNames = inputFiles
@@ -330,23 +333,28 @@ class BaseSubmitWidget(QtGui.QWidget):
         
     #--------------------------------------------------------------------------
     
-    def _setupProfile(self, profile):
+    def _setupProfile(self, profileType):
         
-        logging.debug('Setting current profile to: %s' % profile.NAME)
+        logging.debug('Setting current profile to: %s' % profileType.NAME)
         
         # initialisation or switching the current profile
         if self.profile is None:
-            self.profile = profile(self)
+            self.profile = profileType(self)
             
         else:
-            currentJob = self.profile.job
-            currentSettings = self.profile.jobSettings
-            currentInpFileNames = self.profile.inpFileNames
+#             currentJob = self.profile.job
+#             currentSettings = self.profile.jobSettings
+#             currentInpFileNames = self.profile.inpFileNames
+#             currentPostProcessingType = self.profile.postProcessingType
+#             
+#             self.profile = profileType(self)
+#             self.profile.job = currentJob
+#             self.profile.jobSettings = currentSettings
+#             self.profile.inpFileNames = currentInpFileNames
+#             self.profile.postProcessingType = currentPostProcessingType
             
-            self.profile = profile(self)
-            self.profile.job = currentJob
-            self.profile.jobSettings = currentSettings
-            self.profile.inpFileNames = currentInpFileNames
+            self.profile = self.profile.getCopy(profileType)
+            
         
         self.licenseServerSelectorWidget.setDefaultOption(
             self.profile.getDftLicenseServerOption())
@@ -441,15 +449,15 @@ class AbaqusSubmitWidget(BaseSubmitWidget):
     def _setupWidgets(self):
         
         # add selectors                
-        selectorItem = ci.AbaqusExecutionProfileSelector(self)
+        selectorItem = pi.AbaqusExecutionProfileSelector(self)
         self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
                 
-        selectorItem = bi.LicenseServerSelector(self)
+        selectorItem = si.LicenseServerSelector(self)
         self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
         
-        selectorItem = bi.SolverVersionSelector(self)
+        selectorItem = si.SolverVersionSelector(self)
         self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
         
@@ -476,17 +484,17 @@ class AbaqusSubmitWidget(BaseSubmitWidget):
         self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
         groupLayout.addWidget(self.jobStartTimeSelectorWidget)
         
-        selectorItem = bi.PostProcessingSelector(self)
+        selectorItem = si.PostProcessingSelector(self)
         self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
         
         
         # left pane
-        selectorItem = bi.InputFileSelector(self)
+        selectorItem = si.InputFileSelector(self)
         self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
         
-        selectorItem = bi.ExecutionServerSelector(self)
+        selectorItem = si.ExecutionServerSelector(self)
         self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
         
@@ -504,15 +512,15 @@ class PamCrashSubmitWidget(BaseSubmitWidget):
                 
         # add selectors        
         # right pane        
-        selectorItem = ci.PamCrashExecutionProfileSelector(self)
+        selectorItem = pi.PamCrashExecutionProfileSelector(self)
         self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
                 
-        selectorItem = bi.PamCrashLicenseServerSelector(self)
+        selectorItem = si.PamCrashLicenseServerSelector(self)
         self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
         
-        selectorItem = bi.PamCrashSolverVersionSelector(self)
+        selectorItem = si.PamCrashSolverVersionSelector(self)
         self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
         
@@ -539,17 +547,17 @@ class PamCrashSubmitWidget(BaseSubmitWidget):
         self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
         groupLayout.addWidget(self.jobStartTimeSelectorWidget)
         
-        selectorItem = bi.PostProcessingSelector(self)
+        selectorItem = si.PostProcessingSelector(self)
         self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
         self.postProcessingSelectorWidget.setEnabled(False)
         
         # left pane
-        selectorItem = bi.PamcrashInputFileSelector(self)
+        selectorItem = si.PamcrashInputFileSelector(self)
         self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
         
-        selectorItem = bi.PamCrashExecutionServerSelector(self)
+        selectorItem = si.PamCrashExecutionServerSelector(self)
         self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
         
@@ -567,15 +575,15 @@ class NastranSubmitWidget(BaseSubmitWidget):
                 
         # add selectors        
         # right pane        
-        selectorItem = ci.NastranExecutionProfileSelector(self)
+        selectorItem = pi.NastranExecutionProfileSelector(self)
         self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
                 
-        selectorItem = bi.NastranLicenseServerSelector(self)
+        selectorItem = si.NastranLicenseServerSelector(self)
         self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
         
-        selectorItem = bi.NastranSolverVersionSelector(self)
+        selectorItem = si.NastranSolverVersionSelector(self)
         self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
         
@@ -602,17 +610,17 @@ class NastranSubmitWidget(BaseSubmitWidget):
         self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
         groupLayout.addWidget(self.jobStartTimeSelectorWidget)
         
-        selectorItem = bi.PostProcessingSelector(self)
+        selectorItem = si.PostProcessingSelector(self)
         self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
         self.postProcessingSelectorWidget.setEnabled(False)
         
         # left pane
-        selectorItem = bi.NastranInputFileSelector(self)
+        selectorItem = si.NastranInputFileSelector(self)
         self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
         
-        selectorItem = bi.NastranExecutionServerSelector(self)
+        selectorItem = si.NastranExecutionServerSelector(self)
         self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
                 
