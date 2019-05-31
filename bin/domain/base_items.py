@@ -76,6 +76,13 @@ class NastranSolverType(BaseSolverType):
     QUEUE_COLOUR = utils.ConsoleColors.CYAN
 
 #==============================================================================
+@utils.registerClass
+class ToscaSolverType(BaseSolverType):
+    
+    NAME = 'TOSCA'
+    QUEUE_COLOUR = utils.ConsoleColors.MAGENTA
+    
+#==============================================================================
 
 class BaseLicenseType(object):
     
@@ -383,6 +390,8 @@ class NastranLicenseServerType(BaseLicenseServerType):
     ID = 4
     CODE = 'nastran'
     QUEUE_CODE = 'nastran'
+    
+    LICENSE_TYPE = NastranLicenseType
     
 #==============================================================================
 

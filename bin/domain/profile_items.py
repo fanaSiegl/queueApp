@@ -18,6 +18,7 @@ import selector_items as si
 ABAQUS_EXECUTION_PROFILE_TYPES = list()
 PAMCRASH_EXECUTION_PROFILE_TYPES = list()
 NASTRAN_EXECUTION_PROFILE_TYPES = list()
+TOSCA_EXECUTION_PROFILE_TYPES = list()
 
 #==============================================================================
 
@@ -830,8 +831,6 @@ class PamCrashDataCheckExecutionProfileType(PamCrashExecutionProfileType):
     def _setJobPriority(self): pass
 
 
-
-
 #==============================================================================
 @utils.registerClass
 class NastranExecutionProfileType(BaseExecutionProfileType):
@@ -947,6 +946,93 @@ class NastranExecutionProfileType(BaseExecutionProfileType):
 
 #==============================================================================
 
+@utils.registerClass
+class ToscaExecutionProfileType(BaseExecutionProfileType):
+    
+    container = TOSCA_EXECUTION_PROFILE_TYPES
+    SOLVER_TYPE = bi.ToscaSolverType
+    
+    NAME = 'Tosca analysis'
+    ID = 0
+    
+    DFT_NO_OF_CORES = 4
+    DFT_EXECUTION_SERVER_INDEX = 1
+    DFT_LICENSE_SERVER_INDEX = 1
+        
+    def __init__(self, parentApplication):
+        
+        self.parentApplication = parentApplication
+        self.job = ci.ToscaJob()
+        self.jobSettings = ci.JobExecutionSetting()
+        self.user = ci.User()
+        self.postProcessingType = bi.BasePostProcessingType(self.job)
+        
+        self.inpFileNames = list()
+            
+    #--------------------------------------------------------------------------
+
+    def _setInputFile(self):
+        
+        inpSelector = si.ToscaInputFileSelector(self.parentApplication)
+        self.inpFileNames = inpSelector.getSelection()
+        
+        self.job.setInpFile(self.inpFileNames[0])
+        
+        logging.info('Selected file(s): %s' % ', '.join([
+            os.path.basename(inpFileName) for inpFileName in self.inpFileNames]))
+        
+    #--------------------------------------------------------------------------
+    
+    def _setSolverVersion(self):
+        
+        solverVersionSelector = si.ToscaSolverVersionSelector(self.parentApplication)
+        solverVersion = solverVersionSelector.getSelection()
+        solverVersionPath = solverVersionSelector.VERSIONS.getSolverPath(solverVersion) 
+        
+        self.job.setToscaSolverVersion(solverVersionPath)
+        
+        # run ABAQUS selection
+        super(ToscaExecutionProfileType, self)._setSolverVersion()  
+        
+    #--------------------------------------------------------------------------
+    
+    def _setNumberOfGPUCores(self):        
+                        
+        self.job.setNumberOfGPUCores(0)
+            
+    #--------------------------------------------------------------------------
+    
+    def _setPostProcessingType(self): pass
+    
+    #--------------------------------------------------------------------------
+
+    def getDftLicenseServerOption(self):
+    
+        return self.DFT_LICENSE_SERVER_INDEX
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftExectionServerOption(self):
+        
+        return self.DFT_EXECUTION_SERVER_INDEX
+    
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfCores(self):   
+    
+        maxValue = self.jobSettings.executionServer.NO_OF_CORES
+        minValue = 1
+        
+        return minValue, maxValue, self.DFT_NO_OF_CORES
+    
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfGpus(self):
+                    
+        return 0, 0, 0
+
+#==============================================================================
+
 class AbaqusExecutionProfileSelector(si.BaseDataSelector):
     
     DFT_OPTION_INDEX = 1
@@ -992,4 +1078,12 @@ class NastranExecutionProfileSelector(AbaqusExecutionProfileSelector):
     
     DFT_OPTION_INDEX = 1
     profiles = NASTRAN_EXECUTION_PROFILE_TYPES
-            
+
+#==============================================================================
+
+class ToscaExecutionProfileSelector(AbaqusExecutionProfileSelector):
+    
+    DFT_OPTION_INDEX = 1
+    profiles = TOSCA_EXECUTION_PROFILE_TYPES
+
+

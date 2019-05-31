@@ -504,6 +504,20 @@ class NastranSolverVersionSelector(SolverVersionSelector):
 class NastranExecutionServerSelector(ExecutionServerSelector):
     
     DFT_OPTION_INDEX = 1
+
+#==============================================================================
+
+class ToscaInputFileSelector(InputFileSelector):
+    
+    FILE_EXT = ei.FileExtensions.TOSCA_INPUT
+
+#==============================================================================
+
+class ToscaSolverVersionSelector(SolverVersionSelector):
+    
+    DFT_OPTION_INDEX = ei.ToscaSolverVersions.getDftVersionIndex()
+    DESCRIPTION = 'Choose the Tosca solver version'
+    VERSIONS = ei.ToscaSolverVersions  
     
 #==============================================================================
 

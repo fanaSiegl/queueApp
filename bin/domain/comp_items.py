@@ -14,7 +14,7 @@ import tempfile
 
 import utils
 import base_items as bi
-import enum_items as ei
+# import enum_items as ei
 import selector_items as si
 from persistent import file_items as fi
 from interfaces import xmlio
@@ -215,6 +215,15 @@ class ToscaJob(AbaqusJob):
         super(ToscaJob, self).__init__()
         
         self.numberOfSolverCores = 1
+        self.toscaSolverVersion = ''
+    
+    #--------------------------------------------------------------------------
+    
+    def setToscaSolverVersion(self, toscaSolverVersion):
+        
+        self.toscaSolverVersion = toscaSolverVersion
+        
+        logging.info('Selected TOSCA version: %s' % self.toscaSolverVersion)
                
 #==============================================================================
 

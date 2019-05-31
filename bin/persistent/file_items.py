@@ -421,10 +421,6 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         content += '#$ -j y\n'
         content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
         content += '#$ -p %s\n' % self.parentJob.priority
-#         content += '#$ -v ver_solver=%s\n' % self.parentJob.solverVersion
-#         content += '#$ -v sub_allfiles=%s\n' % int(self.parentJob.inpFile.subAllFiles)
-#         content += '#$ -v ret_allfiles=%s\n' % int(self.parentJob.inpFile.retAllFiles)
-#         content += '#$ -ac verze=%s\n' % self.parentJob.solverVersion
         content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
         content += '#$ -a %s\n' % self.parentJob.startTime
         if len(self.user.email) > 0:
@@ -481,9 +477,8 @@ class ToscaJobExecutableFile(PamCrashJobExecutableFile):
     
     def _getRunCommand(self):
         
-        
         runCommand = ''
-        runCommand += '%s -cpus %s -scpus %s' % (self.parentJob.solverVersion,
+        runCommand += '%s -cpus %s -scpus %s' % (self.parentJob.toscaSolverVersion,
             self.parentJob.numberOfCores, self.parentJob.numberOfSolverCores)
         
         runCommand += ' %s' % self.jobSettings.additionalSolverParams
@@ -492,26 +487,3 @@ class ToscaJobExecutableFile(PamCrashJobExecutableFile):
                 
         return '%s\n' % runCommand
     
-    #-------------------------------------------------------------------------
-    
-    def _getDescriptionContent(self):
-        
-        content = '#!/bin/bash\n'
-#         content += '#$ -hard -l %s\n' % self._getJobFeatures()
-        content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
-        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
-        content += '#$ -cwd -V\n'
-        content += '#$ -j y\n'
-        content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
-        content += '#$ -p %s\n' % self.parentJob.priority
-        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
-        content += '#$ -a %s\n' % self.parentJob.startTime
-        if len(self.user.email) > 0:
-            content += '#$ -M %s\n' % self.user.email
-            content += '#$ -m bes\n'
-                
-        content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
-            self.jobSettings.SCRATCH_PATH, self.user.name)
-        content += 'cd $scratch_dir\n'
-        
-        return content

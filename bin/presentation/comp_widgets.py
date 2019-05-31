@@ -623,6 +623,98 @@ class NastranSubmitWidget(BaseSubmitWidget):
         selectorItem = si.NastranExecutionServerSelector(self)
         self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
+
+
+#===============================================================================
+@utils.registerClass
+class ToscaSubmitWidget(BaseSubmitWidget):
+    
+    ID = 3
+    NAME = 'Submit TOSCA'
+    
+    #--------------------------------------------------------------------------
+
+    def _setupWidgets(self):
                 
+        # add selectors        
+        # right pane        
+        selectorItem = pi.ToscaExecutionProfileSelector(self)
+        self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
+                
+        selectorItem = si.NastranLicenseServerSelector(self)
+        self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
+        
+        selectorItem = si.ToscaSolverVersionSelector(self)
+        self.toscaSolverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.toscaSolverVersionSelectorWidget)
+        
+        selectorItem = si.SolverVersionSelector(self)
+        self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
+        
+        groupLayout = QtGui.QVBoxLayout()
+        group = QtGui.QGroupBox('Parameters')
+        group.setLayout(groupLayout)
+        self.rightPaneWidget.layout().addWidget(group)
+        
+        self.noOfCoresSelectorWidget = bw.NoOfCoresSelectorWidget()
+        groupLayout.addWidget(self.noOfCoresSelectorWidget)
+                
+        self.noOfGpusSelectorWidget = bw.NoOfGpusSelectorWidget()
+        groupLayout.addWidget(self.noOfGpusSelectorWidget)
+        
+        self.jobPrioritySelectorWidget = bw.JobPrioritySelectorWidget()
+        groupLayout.addWidget(self.jobPrioritySelectorWidget)
+        
+        self.jobDescriptionSelectorWidget = bw.JobDescriptionSelectorWidget()
+        groupLayout.addWidget(self.jobDescriptionSelectorWidget)
+        
+        self.solverParametersSelectorWidget = bw.SolverParametersSelectorWidget()
+        groupLayout.addWidget(self.solverParametersSelectorWidget)
+        
+        self.jobStartTimeSelectorWidget = bw.JobStartTimeSelectorWidget()
+        groupLayout.addWidget(self.jobStartTimeSelectorWidget)
+        
+        selectorItem = si.PostProcessingSelector(self)
+        self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+        self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
+        self.postProcessingSelectorWidget.setEnabled(False)
+        
+        # left pane
+        selectorItem = si.ToscaInputFileSelector(self)
+        self.inputFileSelectorWidget = bw.InputFileSelectorWidget(selectorItem)
+        self.leftPaneWidget.layout().addWidget(self.inputFileSelectorWidget)
+        
+        selectorItem = si.NastranExecutionServerSelector(self)
+        self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
+        self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
+
+    #---------------------------------------------------------------------------
+    
+    def _initiateOptions(self):
+        super(ToscaSubmitWidget, self)._initiateOptions()
+        
+        self.toscaSolverVersionSelectorWidget.setupOptions()
+    
+    #--------------------------------------------------------------------------
+
+    def _setupConnections(self):
+        super(ToscaSubmitWidget, self)._setupConnections()
+        
+        self.toscaSolverVersionSelectorWidget.changed.connect(self._setToscaSolverVersion)
+    
+    #--------------------------------------------------------------------------
+
+    def _setToscaSolverVersion(self, solverVersion):
+        
+        self.profile.job.setToscaSolverVersion(solverVersion)
+        
+        # update additional solver parameters
+        self.solverParametersSelectorWidget.setDefaultOption(
+            self.profile.getDftAdditionalSolverParams())
+        
+                        
 #===============================================================================
 
