@@ -55,9 +55,9 @@ def main():
     parser.add_argument('-bdf', nargs=1, metavar='inp_path', dest='inpFilePath',
         help='NASTRAN Input file path.')
     parser.add_argument('-solver', choices=q.ei.NastranSolverVersions.SOLVER_LIST,
-        default=q.ei.NastranSolverVersions.SOLVER_LIST[q.bi.NastranSolverVersionSelector.DFT_OPTION_INDEX - 1],
+        default=q.ei.NastranSolverVersions.SOLVER_LIST[q.si.NastranSolverVersionSelector.DFT_OPTION_INDEX - 1],
         help='NASTRAN solver version. (default=%s)' % q.ei.NastranSolverVersions.SOLVER_LIST[
-            q.bi.NastranSolverVersionSelector.DFT_OPTION_INDEX - 1])
+            q.si.NastranSolverVersionSelector.DFT_OPTION_INDEX - 1])
     parser.add_argument('-host', choices=getListOfHosts(), default='mb-so3',
         help='Calculation host. (default=mb-so3)')
 #     parser.add_argument('-cpu', default=4, type=int, help='Number of CPUs. (default=4)')

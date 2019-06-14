@@ -9,12 +9,14 @@ import time
 import copy
 import shutil
 import subprocess
+import thread
 import logging
 import tempfile
+import glob
 
 import utils
 import base_items as bi
-# import enum_items as ei
+import enum_items as ei
 import selector_items as si
 from persistent import file_items as fi
 from interfaces import xmlio
@@ -27,6 +29,7 @@ class AbaqusJob(object):
     DFT_PRIORITY = 50
     EXECUTABLE_FILE_TYPE = fi.AbaqusJobExecutableFile
     INPUT_FILE_TYPE = fi.AbaqusInpFile
+    SOLVER_TYPE = bi.AbaqusSolverType
     
     def __init__(self):
         
@@ -168,6 +171,7 @@ class PamCrashJob(AbaqusJob):
       
     EXECUTABLE_FILE_TYPE = fi.PamCrashJobExecutableFile
     INPUT_FILE_TYPE = fi.PamCrashInpFile
+    SOLVER_TYPE = bi.PamCrashSolverType
             
     #--------------------------------------------------------------------------
     
@@ -189,6 +193,7 @@ class NastranJob(AbaqusJob):
       
     EXECUTABLE_FILE_TYPE = fi.NastranJobExecutableFile
     INPUT_FILE_TYPE = fi.NastranInpFile
+    SOLVER_TYPE = bi.NastranSolverType
         
     #--------------------------------------------------------------------------
     
@@ -210,6 +215,7 @@ class ToscaJob(AbaqusJob):
       
     EXECUTABLE_FILE_TYPE = fi.ToscaJobExecutableFile
     INPUT_FILE_TYPE = fi.ToscaInpFile
+    SOLVER_TYPE = bi.ToscaSolverType
     
     def __init__(self):
         super(ToscaJob, self).__init__()
@@ -281,12 +287,13 @@ class Resources(object):
     
     QLIC_COMMAND = 'qlic'
     QLIC_COUMNS = ['resource', 'total', 'limit', 'extern', 'intern', 'wait', 'free']
-    
+        
     executionServers = dict()
     availableLicenseServerHosts = dict()
     jobsInQueue = dict()
 #     jobsOutQueue = dict()
     tokenStatus = dict()
+
     
     _hostsStat = dict()
     _outOfQueueJobIds = list()
@@ -305,6 +312,7 @@ class Resources(object):
         cls._setupExecutionServers()
         cls._setAvailableHosts()
         cls._getTokenStatus()
+        cls._setupAvailableMetaPostprocessing()
         
 #         print cls.executionServers
 #         print cls.availableLicenseServerHosts
@@ -414,7 +422,7 @@ class Resources(object):
                 executionServer = bi.BaseExecutionServerType.getServerFromName(hostNameString)
                 cls.executionServers[hostName] = executionServer
             except si.DataSelectorException as e:
-                print str(e)
+                logging.error(str(e))
                 
             
 #             for serverType in EXECUTION_SERVER_TYPES.values():
@@ -466,30 +474,54 @@ class Resources(object):
         
         jobAttributes = xmlio.GridEngineInterface.getQueueStat()
         allLicenseTakingJobs = cls._getOutOfQueueJobsStat()
-#         jobAttributes.extend(cls._getOutOfQueueJobsStat())
         
+        # check finished jobs
+        outOfTheQueueTags = dict()
+        for job in cls.jobsInQueue.values():
+            if job.hasFinished:
+                cls.jobsInQueue.pop(job.id)
+            
+            # gather all current out of the queue jobs
+            if job.isOutOfTheQueue:
+                outOfTheQueueTags[job.jobTag] = job
+                
+                
         # always clear content
-        cls.jobsInQueue.clear()
         uniqueJobTags = list()
-        for jobAttribute in jobAttributes: 
-            job = RunningJob(jobAttribute)
+        for jobAttribute in jobAttributes:
             
-            # check duplicate jobs
-            jobTag = job['JB_owner']+job['state']+str(job['queue_name'])+str(job['hard_request'])
+            currentJobId = jobAttribute['JB_job_number']
+            jobTag = RunningJob.getTag(jobAttribute)
             
-#             if jobTag not in uniqueJobTags:
-            cls.jobsInQueue[job.id] = job
-            uniqueJobTags.append(jobTag)
-        
-        for jobAttribute in allLicenseTakingJobs: 
-            job = RunningJob(jobAttribute)
-            
-            # check duplicate jobs
-            jobTag = job['JB_owner']+job['state']+str(job['queue_name'])+str(job['hard_request'])
-            
-            if jobTag not in uniqueJobTags:
+            # update already existing job in the queue
+            if currentJobId in cls.jobsInQueue:
+                cls.jobsInQueue[currentJobId].updateAttributes()
+                
+            # add a new job
+            else:
+                job = RunningJob(jobAttribute)
                 cls.jobsInQueue[job.id] = job
-                uniqueJobTags.append(jobTag)
+                            
+            uniqueJobTags.append(jobTag)
+            jobTag = RunningJob.getTag(jobAttribute)
+        
+        newOutOfTheQueueTags = list()
+        for jobAttribute in allLicenseTakingJobs: 
+            
+            jobTag = RunningJob.getTag(jobAttribute)
+            
+            # add a new out of the queue job
+            if jobTag not in uniqueJobTags:
+                job = RunningJob(jobAttribute)
+                cls.jobsInQueue[job.id] = job
+                newOutOfTheQueueTags.append(job.jobTag)
+        
+        # check id out of the queue job has finished
+        # maybe there is a better way how to check local running jobs?
+        # job will be removed in the next update...
+        for job in outOfTheQueueTags.values():
+            if job.jobTag not in newOutOfTheQueueTags:
+                job.setHasFinished(True)
     
     #--------------------------------------------------------------------------
     @classmethod
@@ -522,6 +554,27 @@ class Resources(object):
             cls.tokenStatus[licenseServerType] = status
     
     #--------------------------------------------------------------------------
+    @classmethod
+    def _setupAvailableMetaPostprocessing(cls):
+        
+        for path in os.listdir(ei.META_POST_PROCESSING_PATH):
+            fullPath = os.path.join(ei.META_POST_PROCESSING_PATH, path)
+            if not os.path.isdir(fullPath):
+                continue
+            for solverTypeName, solverType in bi.SOLVER_TYPES.iteritems():
+                if solverTypeName.upper() in path.upper():                    
+                    sessionFileList = glob.glob(os.path.join(fullPath, '*.ses'))
+                    if len(sessionFileList) == 1:
+                        sessionFilePath = sessionFileList[0]
+                        
+                        newClass = type('%s_MetaPostProcessingType' % path,
+                            (bi.BaseMetaPostProcessingType, ), {
+                                'metaSessionPath' : sessionFilePath,
+                                'NAME' : path})
+                        
+                        solverType.POST_PROCESSING_TYPES.append(newClass)
+                            
+    #--------------------------------------------------------------------------
 #     @classmethod
 #     def getFileContent(cls, jobItem):
 #         
@@ -539,12 +592,25 @@ class RunningJob(object):
     COLUMNS_WIDTHS = [6, 10, 12, 55, 4, 21, 25, 7, 6]
     OUT_OF_THE_QUEUE_NAME = 'Out of the queue'
     
+    ATTRIBUTE_NAMES = [
+        'exec_file', 'JAT_prio', 'binding', 'JB_job_number','notify', 
+        'sge_o_log_name', 'owner', 'mail_list', 'JAT_start_time', 'job_number', 
+        'uid', 'sge_o_shell', 'sge_o_home', 'group', 'sge_o_workdir', 'queue_name', 
+        'priority', 'state', 'gid', 'binding       1', 'hard_req_queue', 'slots', 
+        'cwd', 'mail_options', 'context', 'jobshare', 'soft_req_queue', 
+        'execution_time', 'job_type', 'hard_queue_list', 'JB_owner', 
+        'scheduling info', 'hard resource_list', 'submission_time', 
+        'soft_queue_list', 'usage         1', 'script_file', 'env_list', 
+        'account', 'sge_o_path', 'hard_request', 'job_name', 'sge_o_host', 
+        'merge', 'full_job_name', 'JB_name']
+    
     def __init__(self, attributes):
                 
         self._attributes = attributes
                 
         self.id = self._attributes['JB_job_number']
         self.name = self._attributes['JB_name']
+        self.jobTag = self.getTag(attributes)
         
         self.licenceServer = bi.BaseLicenseServerType.getLicenseServerTypeFromName(
             self._attributes['hard_req_queue'])
@@ -552,6 +618,8 @@ class RunningJob(object):
         self.noOfTokens = int(self._attributes['hard_request'])
         self.noOfCpus = self.licenceServer.getNoOfCpus(self.noOfTokens)
         
+        self.treeItem = None
+        self.hasFinished = False
         self.isOutOfTheQueue = False
         if self.name == self.OUT_OF_THE_QUEUE_NAME:
             self.isOutOfTheQueue = True
@@ -561,7 +629,29 @@ class RunningJob(object):
         
         self._idetifySolver()
         self._setDetailedAttributes()
-                            
+                    
+    #--------------------------------------------------------------------------
+    
+    @staticmethod
+    def getTag(attributes):
+        
+        return attributes['JB_owner']+attributes['state']+str(attributes['queue_name'])+str(attributes['hard_request'])
+    
+    #--------------------------------------------------------------------------
+    
+    def setTreeItem(self, treeItem):
+        
+        self.treeItem = treeItem
+        
+    #--------------------------------------------------------------------------
+    
+    def setHasFinished(self, state):
+        
+        self.hasFinished = state
+        
+#         if self.hasFinished and self.treeItem is not None:
+#             self.treeItem.delete()
+         
     #--------------------------------------------------------------------------
     
     def _setDetailedAttributes(self):
@@ -574,7 +664,28 @@ class RunningJob(object):
         for line in stdout.splitlines()[1:]:
             parts = line.split(':')
             self._attributes[parts[0]] = ', '.join([p.strip() for p in parts[1:]])
+            
+            # check if the job has already finished
+            if 'do not exist' in line:
+                self.setHasFinished(True)
+            
+        # prevent None in queue_name
+        queueName = self._attributes['queue_name']
+        if queueName is None:
+            self._attributes['queue_name'] = self._attributes['soft_req_queue']
         
+        self._attributes['priority'] = self._attributes['JAT_prio']
+        
+        # update tree item attributes when all attributes are obtained
+        if self.treeItem is not None:
+            self.treeItem.updateAttributes()
+                    
+    #--------------------------------------------------------------------------
+    
+    def updateAttributes(self):
+        
+        thread.start_new_thread(self._setDetailedAttributes, ())
+    
     #--------------------------------------------------------------------------
     
     def _idetifySolver(self):
@@ -589,8 +700,23 @@ class RunningJob(object):
         if attributeName in self._attributes:
             return self._attributes[attributeName]
         else:
-            return None
+            return ''
     
+    #--------------------------------------------------------------------------
+    
+    def getListOfAttributes(self):
+        
+        return sorted(self.ATTRIBUTE_NAMES)
+    
+    #--------------------------------------------------------------------------
+    
+    def getAttribute(self, attributeName):
+        
+        if attributeName in self._attributes:
+            return self._attributes[attributeName]
+        else:
+            return ''
+        
     #--------------------------------------------------------------------------
     
     def getTooltip(self):
@@ -627,8 +753,8 @@ class RunningJob(object):
             jobtime = self._attributes['JB_submission_time']
         
         queueName = self._attributes['queue_name']
-        if queueName is None:
-            queueName = self._attributes['soft_req_queue']
+#         if queueName is None:
+#             queueName = self._attributes['soft_req_queue']
         
         string += ''.join(lineFormat).format(
             self._attributes['JB_job_number'], self._attributes['JAT_prio'],
@@ -757,6 +883,7 @@ class Queue(object):
     def __init__(self):
         
         self.jobs = list()
+        self.finishedJobs = list()
         
         self.updateState()
 

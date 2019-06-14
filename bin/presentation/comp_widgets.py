@@ -16,6 +16,7 @@ from domain import selector_items as si
 from domain import profile_items as pi
 
 import base_widgets as bw
+import models
 
 #===============================================================================
 
@@ -98,27 +99,38 @@ class QueueWidget(QtGui.QWidget):
         self.layout = QtGui.QVBoxLayout()
         self.setLayout(self.layout)
                 
-        labels = QtGui.QLabel(self.queue.getColumnLabels())
-        font = QtGui.QFont()
-        font.setFamily("Courier New")
-        labels.setFont(font)             
-        self.layout.addWidget(labels)
+#         labels = QtGui.QLabel(self.queue.getColumnLabels())
+#         font = QtGui.QFont()
+#         font.setFamily("Courier New")
+#         labels.setFont(font)             
+#         self.layout.addWidget(labels)
         
-        self.queueListWidget = bw.QueueListWidget(self)
-        self.layout.addWidget(self.queueListWidget)
-                    
+#         self.queueListWidget = bw.QueueListWidget(self)
+        self.queueTreeView = bw.QueueTreeView(self)
+        self.queueTreeView.setModel(models.BaseTreeModel())
+        
+#         self.layout.addWidget(self.queueListWidget)
+        self.layout.addWidget(self.queueTreeView)
+                            
     #--------------------------------------------------------------------------
     
     def updateContent(self):
-                
-        self.queueListWidget.clear()
         
         for job in self.queue.jobs:
-            newItem = bw.QueueJobListWidgetItem(job)
+            # add a new job or remove job
+            if job.treeItem is None:
+                jobTreeItem = models.QueueJobTreeItem(job)
+                self.queueTreeView.model().appendRow(jobTreeItem.getRow())
             
-            self.queueListWidget.addItem(newItem)
+        # remove finished jobs
+        for rowId in range(self.queueTreeView.model().rowCount())[::-1]:
+            itemIndex = self.queueTreeView.model().index(rowId, 0)
+            item = self.queueTreeView.model().itemFromIndex(itemIndex)
             
+            if item.dataItem.hasFinished:
+                self.queueTreeView.model().removeRows(itemIndex.row(), 1)
             
+        self.queueTreeView.updateViewHeader()
      
 #===============================================================================
 
@@ -171,7 +183,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         
         self.postProcessingSelectorWidget.setDefaultOption(
             self.profile.getDftPostProcessingOption())
-                    
+                            
     #---------------------------------------------------------------------------
     
     def setWorkDir(self, path):
@@ -697,6 +709,8 @@ class ToscaSubmitWidget(BaseSubmitWidget):
         super(ToscaSubmitWidget, self)._initiateOptions()
         
         self.toscaSolverVersionSelectorWidget.setupOptions()
+           
+        self.submitButton.setEnabled(False)       
     
     #--------------------------------------------------------------------------
 

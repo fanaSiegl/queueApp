@@ -12,6 +12,7 @@ import base_items as bi
 import enum_items as ei
 import comp_items as ci
 import selector_items as si
+from persistent import file_items as fi
 
 #==============================================================================
 
@@ -45,7 +46,7 @@ class BaseExecutionProfileType(object):
         
         ''' Returns a new type of profile with the current profile settings.  '''
                 
-        profile = profileType(self)
+        profile = profileType(self.parentApplication)
         profile.job = self.job
         profile.jobSettings = self.jobSettings
         profile.inpFileNames = self.inpFileNames
@@ -349,7 +350,7 @@ class DatacheckExecutionProfileType(BaseExecutionProfileType):
     
     def getDftNoOfCores(self):
                         
-        return 1, 1, 1
+        return 1, self.DATACHECK_CPU_NO, self.DATACHECK_CPU_NO
 
     #--------------------------------------------------------------------------
     
@@ -829,6 +830,12 @@ class PamCrashDataCheckExecutionProfileType(PamCrashExecutionProfileType):
     #--------------------------------------------------------------------------
     
     def _setJobPriority(self): pass
+    
+    #--------------------------------------------------------------------------
+    
+    def getDftNoOfCores(self):
+                        
+        return 1, self.DATACHECK_CPU_NO, self.DATACHECK_CPU_NO
 
 
 #==============================================================================

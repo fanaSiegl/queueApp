@@ -36,6 +36,7 @@ class BaseSolverType(object):
     
     container = SOLVER_TYPES
     NAME = ''
+    POST_PROCESSING_TYPES = list()
     
     #-------------------------------------------------------------------------
     @classmethod
@@ -53,6 +54,7 @@ class UnknownSolverType(BaseSolverType):
     
     NAME = 'UNKNOWN'
     QUEUE_COLOUR = utils.ConsoleColors.FAIL
+    JOB_ITEM_COLOUR = utils.TreeItemColors.RED
     
 #==============================================================================
 @utils.registerClass
@@ -60,6 +62,8 @@ class AbaqusSolverType(BaseSolverType):
     
     NAME = 'ABAQUS'
     QUEUE_COLOUR = utils.ConsoleColors.BLUE
+    JOB_ITEM_COLOUR = utils.TreeItemColors.BLUE
+    POST_PROCESSING_TYPES = list()
 
 #==============================================================================
 @utils.registerClass
@@ -67,13 +71,17 @@ class PamCrashSolverType(BaseSolverType):
     
     NAME = 'PamCrash'
     QUEUE_COLOUR = utils.ConsoleColors.GREEN
-
+    JOB_ITEM_COLOUR = utils.TreeItemColors.GREEN
+    POST_PROCESSING_TYPES = list()
+    
 #==============================================================================
 @utils.registerClass
 class NastranSolverType(BaseSolverType):
     
     NAME = 'NASTRAN'
     QUEUE_COLOUR = utils.ConsoleColors.CYAN
+    JOB_ITEM_COLOUR = utils.TreeItemColors.CYAN
+    POST_PROCESSING_TYPES = list()
 
 #==============================================================================
 @utils.registerClass
@@ -81,6 +89,8 @@ class ToscaSolverType(BaseSolverType):
     
     NAME = 'TOSCA'
     QUEUE_COLOUR = utils.ConsoleColors.MAGENTA
+    JOB_ITEM_COLOUR = utils.TreeItemColors.MAGENTA
+    POST_PROCESSING_TYPES = list()
     
 #==============================================================================
 
@@ -660,10 +670,10 @@ class MetaConversionPostProcessingType(BasePostProcessingType):
 # now sleep until lock file disappears
 sleep 30 && while [ -f $jobname.lck ]; do sleep 5; done
 
-if [ -r META_queue_session.ses -a -f /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh ]; then   #konverze do metadb
+if [ -r META_queue_session.ses -a -f $meta_executable ]; then   #konverze do metadb
     echo "Startuji konverzi do Metadb"
     echo "Startuji konverzi do Metadb" >> $jobname.log
-    /usr1/applications/ansa/BETA_CAE_Systems/meta_post_v18.1.1/meta_post64.sh -b -foregr -virtualx_64bit -s META_queue_session.ses $jobname &>> $jobname.log
+    $meta_executable -b -foregr -virtualx_64bit -s META_queue_session $jobname &>> $jobname.log
     sleep 5
     echo "Koncim konverzi do Metadb"
     echo "Koncim konverzi do Metadb" >> $jobname.log
@@ -671,7 +681,8 @@ fi
 ''')
 
         return template.safe_substitute(
-            {'jobname' : self.parentJob.inpFile.baseName})
+            {'jobname' : self.parentJob.inpFile.baseName,
+             'meta_executable' : ei.META_EXECUTABLE})
 
 #==============================================================================
 @utils.registerClass
@@ -679,5 +690,35 @@ class ResultsDeletingPostProcessingType(BasePostProcessingType):
     
     NAME = 'Results deleting'
     ID = 2
-            
+
+#==============================================================================
+
+class BaseMetaPostProcessingType(BasePostProcessingType):
+    
+#     NAME = ''
+#     ID = 1
+    metaSessionPath = ''
+                
+    #--------------------------------------------------------------------------
+    
+    def getContent(self):
+        
+        template = Template('''
+# now sleep until lock file disappears
+sleep 30 && while [ -f $jobname.lck ]; do sleep 5; done
+
+if [ -r META_queue_session.ses -a -f $meta_executable ]; then   #konverze do metadb
+    echo "Startuji konverzi do Metadb"
+    echo "Startuji konverzi do Metadb" >> $jobname.log
+    $meta_executable -b -foregr -virtualx_64bit -s $meta_session_name $jobname &>> $jobname.log
+    sleep 5
+    echo "Koncim konverzi do Metadb"
+    echo "Koncim konverzi do Metadb" >> $jobname.log
+fi
+''')
+
+        return template.safe_substitute(
+            {'jobname' : self.parentJob.inpFile.baseName,
+             'meta_executable' : ei.META_EXECUTABLE,
+             'meta_session_name' : self.metaSessionPath})
 

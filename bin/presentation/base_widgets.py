@@ -4,6 +4,9 @@
 import os
 import sys
 import glob
+import subprocess
+from functools import partial
+import xml.etree.ElementTree as ETree
 
 from PyQt4 import QtCore, QtGui
 
@@ -13,7 +16,7 @@ from PyQt4 import QtCore, QtGui
 
 class SignalGenerator(QtCore.QTimer):
 
-    PERIOD = 10.0 # s
+    PERIOD = 20.0 # s
     updateStatus = QtCore.pyqtSignal()
 
     def __init__(self):
@@ -256,7 +259,6 @@ class InputFileSelectorWidget(QtGui.QWidget):
         super(InputFileSelectorWidget, self).__init__()
         
         self.selectorItem = selectorItem
-        self.items = list()
         
         self._setupWidgets()
         self._setupConnections()
@@ -272,85 +274,41 @@ class InputFileSelectorWidget(QtGui.QWidget):
         group.setLayout(groupLayout)
         
         self.workingDirectorySelectorWidget = WorkingDirectorySelectorWidget(self.selectorItem)
-        self.listWidget = QtGui.QListWidget()
+        
+        self.view = InputFilesTreeView(self.selectorItem)
         
         groupLayout.addWidget(self.workingDirectorySelectorWidget)
-        groupLayout.addWidget(self.listWidget)
+        groupLayout.addWidget(self.view)
+        
         self.layout().addWidget(group)
-                
-        # buttons
-        self.checkAllButton = QtGui.QPushButton('Check all')
-        self.checkNoneButton = QtGui.QPushButton('Check none')
-        
-        buttonLayout = QtGui.QHBoxLayout()
-        buttonLayout.addStretch()
-        buttonLayout.addWidget(self.checkAllButton)
-        buttonLayout.addWidget(self.checkNoneButton)
-        buttonLayout.addStretch()
-        
-        self.layout().addLayout(buttonLayout)
+
 
     #---------------------------------------------------------------------------
     
     def _setupConnections(self):
         
-        self.checkAllButton.released.connect(self._checkAll)
-        self.checkNoneButton.released.connect(self._checkNone)
-        self.listWidget.itemClicked.connect(self.valueChanged)
+        self.view.itemSelectionChanged.connect(self.valueChanged)
         
         self.workingDirectorySelectorWidget.changed.connect(self.findInputFiles)
-    
-    #---------------------------------------------------------------------------
-    
-    def _checkAll(self):
-        
-        for item in self.items:
-            item.setCheckState(2)
-        
-        self.valueChanged()
-    
-    #---------------------------------------------------------------------------
-    
-    def _checkNone(self):
-        
-        for item in self.items:
-            item.setCheckState(0)
-        
-        self.valueChanged()
         
     #---------------------------------------------------------------------------
 
     def setupInputFiles(self):
-                
-        self.listWidget.clear()
-        self.items = list()
-        
-        for option in self.selectorItem.getOptions():
-            
-            item = QtGui.QListWidgetItem(os.path.basename(option))
-            item.setCheckState(0)
-            self.listWidget.addItem(item)
                         
-            self.items.append(item)
+        options = self.selectorItem.getOptions()
         
-        if len(self.items) == 1:
-            defaultItem = self.items[0]
-            defaultItem.setCheckState(2)
+        if len(options) == 1:
+            firstIndexPath = os.path.join(str(self.view.model().rootPath()), options[0])
+            firstIndex = self.view.model().index(firstIndexPath)
+            self.view.setCurrentIndex(firstIndex)
             
             self.valueChanged()
-    
+                
     #---------------------------------------------------------------------------
     
     def getSelection(self):
-        
-        options = self.selectorItem.getOptions()
-        
-        checkedOptions = list()
-        for index, item in enumerate(self.items):
-            if item.checkState() == QtCore.Qt.Checked:
-                checkedOptions.append(options[index])
-        
-        return checkedOptions
+                        
+        return self.view.getSelectedItems()
     
     #---------------------------------------------------------------------------
     
@@ -366,6 +324,7 @@ class InputFileSelectorWidget(QtGui.QWidget):
         
         self.workingDirectorySelectorWidget.lineEdit.setText(projectDir)
         
+        self.view.setRootIndex(self.view.model().setRootPath(projectDir))        
         self.setupInputFiles()
 
 #=============================================================================
@@ -570,6 +529,8 @@ class BaseListWidget(QtGui.QListWidget):
         self.itemSelectionChanged.connect(self.itemSelected)
 #         self.itemChanged.connect(self.itemRenamed)
     
+        self.doubleClicked.connect(self.itemDoubleClicked)
+    
     #--------------------------------------------------------------------------
 
     def itemRenamed(self, editedItem):
@@ -580,9 +541,11 @@ class BaseListWidget(QtGui.QListWidget):
     
     #--------------------------------------------------------------------------
 
-    def itemSelected(self):
-        
-        pass
+    def itemDoubleClicked(self): pass
+    
+    #--------------------------------------------------------------------------
+
+    def itemSelected(self): pass
     
     #--------------------------------------------------------------------------
 
@@ -657,6 +620,15 @@ class RunningJobFileListWidget(BaseListWidget):
             
             self.addItem(newItem)
     
+    #--------------------------------------------------------------------------
+
+    def itemDoubleClicked(self):
+        
+        for item in self.selectedItems():
+            if item.dataItem is not None:
+                item.trackContent(self)       
+    
+    
 #=============================================================================
 
 class BaseListWidgetItem(QtGui.QListWidgetItem):
@@ -688,61 +660,61 @@ class BaseListWidgetItem(QtGui.QListWidgetItem):
 
 #=============================================================================
 
-class QueueJobListWidgetItem(BaseListWidgetItem):
-    
-    def __init__(self, dataItem):
-        super(QueueJobListWidgetItem, self).__init__(dataItem)
-        
-        
-        if 'abaqus' in self.dataItem.licenceServer.CODE:
-            self.setTextColor(QtGui.QColor("blue"))
-        elif 'pamcrash' in self.dataItem.licenceServer.CODE:
-            self.setTextColor(QtGui.QColor("green"))
-        
-        if self.dataItem.isOutOfTheQueue:
-            self.setTextColor(QtGui.QColor("red"))
-            
-    #------------------------------------------------------------------------------ 
-    
-    def openContextMenu(self, parentWidget):
-        
-        menu = QtGui.QMenu()
-        
-        jobInfoAction = menu.addAction('Job info')
-        jobContentAction = menu.addAction('Check progress')
-        jobKillAction = menu.addAction('Terminate')
-        
-        jobInfoAction.triggered.connect(self.jobInfo)
-        jobContentAction.triggered.connect(
-            lambda: self.showContent(parentWidget))
-        jobKillAction.triggered.connect(self.jobTerminate)
-        
-        # check autority
-#         if parentWidget.parentApplication.userName != self.dataItem['JB_owner']:
+# class QueueJobListWidgetItem(BaseListWidgetItem):
+#     
+#     def __init__(self, dataItem):
+#         super(QueueJobListWidgetItem, self).__init__(dataItem)
+#         
+#         
+#         if 'abaqus' in self.dataItem.licenceServer.CODE:
+#             self.setTextColor(QtGui.QColor("blue"))
+#         elif 'pamcrash' in self.dataItem.licenceServer.CODE:
+#             self.setTextColor(QtGui.QColor("green"))
+#         
+#         if self.dataItem.isOutOfTheQueue:
+#             self.setTextColor(QtGui.QColor("red"))
+#             
+#     #------------------------------------------------------------------------------ 
+#     
+#     def openContextMenu(self, parentWidget):
+#         
+#         menu = QtGui.QMenu()
+#         
+#         jobInfoAction = menu.addAction('Job info')
+#         jobContentAction = menu.addAction('Check progress')
+#         jobKillAction = menu.addAction('Terminate')
+#         
+#         jobInfoAction.triggered.connect(self.jobInfo)
+#         jobContentAction.triggered.connect(
+#             lambda: self.showContent(parentWidget))
+#         jobKillAction.triggered.connect(self.jobTerminate)
+#         
+#         # check autority
+# #         if parentWidget.parentApplication.userName != self.dataItem['JB_owner']:
+# #             jobKillAction.setEnabled(False)
+#         if self.dataItem.isOutOfTheQueue:
 #             jobKillAction.setEnabled(False)
-        if self.dataItem.isOutOfTheQueue:
-            jobKillAction.setEnabled(False)
-        
-        if self.dataItem.isOutOfTheQueue:
-            jobContentAction.setEnabled(False)
-        elif self.dataItem._attributes['state'] != 'r':
-            jobContentAction.setEnabled(False)
-                    
-        menu.exec_(QtGui.QCursor.pos())
-    
-    #------------------------------------------------------------------------------ 
-    
-    def jobTerminate(self):
-        
-        quitMsg = "Are you sure to terminate the job?"
-        reply = QtGui.QMessageBox.question(None, 'Exit', 
-            quitMsg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-    
-        if reply == QtGui.QMessageBox.Yes:
-            status = self.dataItem.terminate()
-        
-            QtGui.QMessageBox.information(None, 'Terminate job %s info' % self.dataItem.id,
-                    str(status))
+#         
+#         if self.dataItem.isOutOfTheQueue:
+#             jobContentAction.setEnabled(False)
+#         elif self.dataItem._attributes['state'] != 'r':
+#             jobContentAction.setEnabled(False)
+#                     
+#         menu.exec_(QtGui.QCursor.pos())
+#     
+#     #------------------------------------------------------------------------------ 
+#     
+#     def jobTerminate(self):
+#         
+#         quitMsg = "Are you sure to terminate the job?"
+#         reply = QtGui.QMessageBox.question(None, 'Exit', 
+#             quitMsg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+#     
+#         if reply == QtGui.QMessageBox.Yes:
+#             status = self.dataItem.terminate()
+#         
+#             QtGui.QMessageBox.information(None, 'Terminate job %s info' % self.dataItem.id,
+#                     str(status))
     
     #------------------------------------------------------------------------------ 
     
@@ -816,9 +788,28 @@ class FileContentTrackerWidget(QtGui.QTabWidget):
     def setupContent(self, jobItem, fileName):
         
         name = '%s (Job: %s)' %(fileName, jobItem.id)
-        self.addTab(TrackedFileContentWidget(self, jobItem, fileName), name)
+        trackedFileContentWidget = TrackedFileContentWidget(self, jobItem, fileName)
+        tabIndex = self.addTab(trackedFileContentWidget, name)
+        
+        button = QtGui.QPushButton('x')
+        button.released.connect(
+            partial(self.removeTracking, trackedFileContentWidget))
+        
+        self.tabBar().setTabButton(tabIndex, QtGui.QTabBar.RightSide, button)
+        
+    #------------------------------------------------------------------------------ 
+    
+    def removeTracking(self, tabWidget):
+                
+        tabWidget.stopTracking()
+        
+        self.removeTab(self.indexOf(tabWidget))
         
         
+        
+#         tempSepAction.triggered.connect(
+#                 #lambda: self.separateMaterial(parentWidget, stateVariable))
+#                 partial(self.separateMaterial, parentWidget, stateVariable))
 
 #=============================================================================
 
@@ -846,7 +837,7 @@ class TrackedFileContentWidget(QtGui.QWidget):
         self.fileContentTrackerThread.contentUpdated.connect(
             self._updateContent)
         self.parentApplication.signalGenerator.updateStatus.connect(
-            self.fileContentTrackerThread.run)
+            self.fileContentTrackerThread.start)
         
         # initiate content
         self._updateContent(self.dataItem.getTrackedFileContent(self.fileName))
@@ -860,7 +851,12 @@ class TrackedFileContentWidget(QtGui.QWidget):
         self.fileContentTextEdit.setText(trackedFileContent)
         self.fileContentTextEdit.moveCursor(QtGui.QTextCursor.End)
         
+    #------------------------------------------------------------------------------ 
+    
+    def stopTracking(self):
         
+        self.parentApplication.signalGenerator.updateStatus.disconnect(
+            self.fileContentTrackerThread.start)
 
 #==============================================================================
 
@@ -889,9 +885,329 @@ class FileContentTrackerThread(QtCore.QThread):
             self.contentUpdated.emit(self.fileContent)
     
     #--------------------------------------------------------------------------
+
+
+#===============================================================================
+
+class InputFilesTreeView(QtGui.QTreeView):
     
-            
+    headerColumnVisibilityChanged = QtCore.pyqtSignal(list)
+    TAG = 'InputFilesTreeView'
+    itemSelectionChanged = QtCore.pyqtSignal(list)
+    
+    def __init__(self, selectorItem):
         
+        super(InputFilesTreeView, self).__init__()
+        
+        self.selectorItem = selectorItem
+        self.parentApplication = self.selectorItem.parentApplication
+        
+        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+                
+        self.fileSystemModel = QtGui.QFileSystemModel()
+        self.fileSystemModel.setNameFilters(QtCore.QStringList('*' + self.selectorItem.FILE_EXT))
+        self.fileSystemModel.setNameFilterDisables(False)
+        
+        self.fileSystemModel.setFilter(QtCore.QDir.NoDotAndDotDot | QtCore.QDir.Files )
+        
+        self.setModel(self.fileSystemModel)
+        self.setRootIsDecorated(False)
+        
+        self.expandAll()
+        self.setSortingEnabled(True)
+        self.sortByColumn(0, QtCore.Qt.AscendingOrder)
+#         self.view.resizeColumnToContents(0)
+        self.setColumnWidth(0, 400)
+        
+    #--------------------------------------------------------------------------
+
+    def getSelectedItems(self):
+         
+        selectedItems = list()
+        for index in self.selectedIndexes():
+            path = index.model().filePath(index)
+            
+            if index.column() > 0:
+                continue
+            selectedItems.append(str(path))
+         
+        return selectedItems
+     
+    #--------------------------------------------------------------------------
+    
+    def mouseReleaseEvent(self, event):
+        
+        super(InputFilesTreeView, self).mouseReleaseEvent(event)
+        
+        self.itemSelected(self.currentIndex())
+    
+    #--------------------------------------------------------------------------
+
+    def itemSelected(self, index):
+        
+        selectedItems = list()
+        for index in self.selectedIndexes():
+            path = index.model().filePath(index)
+            
+            if index.column() > 0:
+                continue
+            selectedItems.append(str(path))
+        
+        self.itemSelectionChanged.emit(selectedItems)
+                
+#===============================================================================
+
+class QueueTreeView(QtGui.QTreeView):
+    
+    headerColumnVisibilityChanged = QtCore.pyqtSignal(list)
+    itemForTrackingSelected = QtCore.pyqtSignal(object)
+        
+    TAG = 'QueueTreeView'
+    DFT_ATTRIBUTES_VISIBILITY = [
+        'job_number', 'priority', 'JB_owner', 'JB_name', 'state',
+        'JAT_start_time', 'queue_name', 'hard_request']
+    
+    def __init__(self, parentWidget):
+        
+        super(QueueTreeView, self).__init__()
+        
+        self.parentWidget = parentWidget
+        self.parentApplication = self.parentWidget.parentApplication
+        self.queue = self.parentWidget.queue
+        
+        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setSortingEnabled(True)
+        self.setRootIsDecorated(False)
+        
+        self.activated.connect(self.itemSelected)
+        self.doubleClicked.connect(self.itemDoubleClicked)
+        #self.selectionChanged()
+        #self.header().hide()
+        
+#         self.setModel(self.application.contentProvider.getDatabaseModel())
+        headerView = self.header()
+        headerView.setClickable(True)
+        headerView.sectionClicked.connect(self.showHeaderColumnOptions)
+        
+        self.headerColumnVisibility = list()
+                
+    #--------------------------------------------------------------------------
+
+    def contextMenuEvent(self, event):
+                        
+        index = self.indexAt(event.pos())
+        
+        if index.isValid():
+            item = self.model().itemFromIndex(index)
+            item.openContextMenu(self)
+        else:
+            self.openContextMenu()
+        
+#         if len(self.selectedIndexes()) > 0:
+#             item = self.model().itemFromIndex(self.selectedIndexes()[0])
+#             item.openContextMenu(self)
+#         else:
+#             self.openContextMenu()
+            
+    #--------------------------------------------------------------------------
+
+    def openContextMenu(self):
+        
+        return
+        menu = QtGui.QMenu()
+                
+        modifyTreeStructureAction = menu.addAction('Modify DB tree structure')
+#         modifyTreeStructureAction.setIcon(
+#             QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'view-web-browser-dom-tree.png')))
+        modifyTreeStructureAction.triggered.connect(
+            self.parentApplication.showDatabaseTreeStructureDialog)
+        
+        importMaterialAction = menu.addAction('Import material')
+#         importMaterialAction.setIcon(
+#             QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'document-new.png')))
+        importMaterialAction.triggered.connect(
+            self.parentApplication.showMaterialImportDialog)
+        
+        menu.exec_(QtGui.QCursor.pos())
+    
+    #--------------------------------------------------------------------------
+
+#     def getSelectedItems(self):
+#         
+#         selectedItems = list()
+#         for index in self.selectedIndexes():
+#             item = index.model().itemFromIndex(index)
+#             if index.column() > 0:
+#                 continue
+#             if item.dataItem is not None:
+#                 selectedItems.append(item.dataItem)
+#         
+#         return selectedItems
+     
+    #--------------------------------------------------------------------------
+
+    def itemSelected(self, index):
+        
+        selectedItems = list()
+        selectedRows = list()
+        for index in self.selectedIndexes():
+            item = index.model().itemFromIndex(index)
+            currentRow = item.row()
+            if currentRow not in selectedRows:
+                selectedRows.append(currentRow)
+            else:
+                continue
+            if item.dataItem is not None:
+                selectedItems.append(item.dataItem)
+        
+        if len(selectedItems) > 0:
+#             print selectedItems
+            pass
+#             self.parentApplication.signalController.navigationItemsSelected.emit(selectedItems)
+    
+    #------------------------------------------------------------------------------ 
+    
+    def itemDoubleClicked(self):
+        
+        selectedItems = list()
+        selectedRows = list()
+        for index in self.selectedIndexes():
+            item = index.model().itemFromIndex(index)
+            currentRow = item.row()
+            if currentRow not in selectedRows:
+                selectedRows.append(currentRow)
+            else:
+                continue
+            if item.dataItem is not None:
+                selectedItems.append(item.dataItem)
+        
+#         if len(selectedItems) > 0:
+        for selectedItem in selectedItems:
+            self.itemForTrackingSelected.emit(selectedItem)
+#             self.parentApplication.signalController.navigationItemsDoubleClicked.emit(selectedItems)
+        
+    #------------------------------------------------------------------------------ 
+    
+    def _getAllIndexes(self):
+        
+        return self.model().match(
+            self.model().index(0,0), QtCore.Qt.DisplayRole, '*',
+            hits=-1, flags=QtCore.Qt.MatchWildcard|QtCore.Qt.MatchRecursive)
+    
+    #------------------------------------------------------------------------------ 
+    
+    def expandFirstChildren(self):
+        
+#         rootIndex = self.model().index(0,0)
+#         rootItem = self.model().itemFromIndex(rootIndex)
+#         
+#         print self.model().rowCount()
+        for row in range(self.model().rowCount()):
+            self.expand(self.model().index(row, 0))
+            
+    #--------------------------------------------------------------------------
+
+    def updateViewHeader(self):
+        
+        # if column visibility has been already defined
+        if len(self.headerColumnVisibility) > 0:
+            return
+                
+#         self.headerColumnVisibility.append(True)
+        visibleColumns = dict()
+        for i in range(self.header().count()-1):
+            if str(self.model().headerLabels[i]) in self.DFT_ATTRIBUTES_VISIBILITY:
+                isVisible = True
+                visibleColumns[str(self.model().headerLabels[i])] = i
+#                 headerView = self.header()
+#                 headerView.moveSection(
+#                     i, self.DFT_ATTRIBUTES_VISIBILITY.index(str(self.model().headerLabels[i])))
+#                 print i, self.DFT_ATTRIBUTES_VISIBILITY.index(str(self.model().headerLabels[i]))
+            else:
+                isVisible = False
+            self.headerColumnVisibility.append(isVisible)
+            self.setColumnVisible(i, isVisible)           
+        
+        # sort columns
+        headerView = self.header()
+        for visibleAttrName in self.DFT_ATTRIBUTES_VISIBILITY[::-1]:
+            currentVisibilityIndex = headerView.visualIndex(visibleColumns[visibleAttrName])
+            targetVisibilityIndex = self.DFT_ATTRIBUTES_VISIBILITY.index(visibleAttrName) 
+            headerView.swapSections(currentVisibilityIndex, targetVisibilityIndex)
+             
+            self.resizeColumnToContents(visibleColumns[visibleAttrName])
+                 
+        self.sortByColumn(visibleColumns[self.DFT_ATTRIBUTES_VISIBILITY[0]], QtCore.Qt.AscendingOrder)
+        
+#         self.header().setStretchLastSection(False)
+#         self.header().setResizeMode(0, QtGui.QHeaderView.Stretch)
+        #self.header().setResizeMode(self.header().count()-1, QtGui.QHeaderView.Fixed)
+        
+#         self.header().setResizeMode(self.header().count()-1, QtGui.QHeaderView.ResizeToContents)
+#         self.header().resizeSection(self.header().count()-1, 20)
+#         self.header().setResizeMode(self.header().count()-1, QtGui.QHeaderView.Stretch)        
+        
+    #--------------------------------------------------------------------------
+
+    def showHeaderColumnOptions(self, value):
+                
+        if value == self.header().count()-1:
+            #headerButtonItem = self.model().horizontalHeaderItem(value)            
+            
+            currentQMenu = QtGui.QMenu()
+            for column, label in enumerate(self.model().headerLabels[:-1]):
+                currentQAction = QtGui.QAction('%s' % label, currentQMenu)
+                currentQAction.setCheckable(True)
+                currentQAction.setChecked(self.headerColumnVisibility[column])
+                currentQAction.toggled.connect(partial(self.setColumnVisible, column))
+                
+                currentQMenu.addAction(currentQAction)
+            
+            currentQMenu.exec_(QtGui.QCursor.pos())
+                
+    #--------------------------------------------------------------------------
+
+    def setColumnVisible(self, column, isChecked):
+        if isChecked:
+            self.showColumn(column)
+            self.resizeColumnToContents(column)
+            
+            # set default sorting to current column
+            self.header().setSortIndicator(column, QtCore.Qt.AscendingOrder)
+        else:
+            self.hideColumn(column)
+            # set default sorting to current column
+            self.header().setSortIndicator(21, QtCore.Qt.AscendingOrder)
+        
+        self.headerColumnVisibility[column] = isChecked
+        
+        self.headerColumnVisibilityChanged.emit([])
+    
+    #--------------------------------------------------------------------------
+    
+    def toTree(self):
+        
+        headerColumnVisibility = dict()
+        
+        for column, label in enumerate(self.model().headerLabels[:-1]):
+            if self.headerColumnVisibility[column]:
+                headerColumnVisibility[label] = str(self.headerColumnVisibility[column])
+        
+        element = ETree.Element(self.TAG)
+        ETree.SubElement(element, 'columnVisibility', headerColumnVisibility)
+        
+        return element
+    
+    #--------------------------------------------------------------------------
+    
+    def fromTree(self, element):
+        
+#         print ETree.tostring(element)
+        columnVisibilityElement = element.find('columnVisibility')
+        for name, value in columnVisibilityElement.items():
+            column = self.model().headerLabels.index(name)
+            self.setColumnVisible(column, True)
+                 
 #===============================================================================
 
 def createDock(parent, label, widget):

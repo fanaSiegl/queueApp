@@ -55,9 +55,9 @@ def main():
     parser.add_argument('-pc', nargs=1, metavar='inp_path', dest='inpFilePath',
         help='PAMCRASH Input file path.')
     parser.add_argument('-solver', choices=q.ei.PamcrashSolverVersions.SOLVER_LIST,
-        default=q.ei.PamcrashSolverVersions.SOLVER_LIST[q.bi.PamCrashSolverVersionSelector.DFT_OPTION_INDEX - 1],
+        default=q.ei.PamcrashSolverVersions.SOLVER_LIST[q.si.PamCrashSolverVersionSelector.DFT_OPTION_INDEX - 1],
         help='PAMCRASH solver version. (default=%s)' % q.ei.PamcrashSolverVersions.SOLVER_LIST[
-            q.bi.PamCrashSolverVersionSelector.DFT_OPTION_INDEX - 1])
+            q.si.PamCrashSolverVersionSelector.DFT_OPTION_INDEX - 1])
     parser.add_argument('-host', choices=getListOfHosts(), default='mb-so3',
         help='Calculation host. (default=mb-so3)')
     parser.add_argument('-cpu', default=4, type=int, help='Number of CPUs. (default=4)')

@@ -56,13 +56,13 @@ def main():
         help='ABAQUS Input file path.')
     parser.add_argument('-license',
         choices=getListLicenses()[0],
-        default=getListLicenses()[0][q.bi.LicenseServerSelector.DFT_OPTION_INDEX - 1],
+        default=getListLicenses()[0][q.si.LicenseServerSelector.DFT_OPTION_INDEX - 1],
         help='ABAQUS license server type. (default=%s)' % [
-            licenseServer.NAME for licenseServer in q.bi.LICENSE_SERVER_TYPES][q.bi.LicenseServerSelector.DFT_OPTION_INDEX - 1],)
+            licenseServer.NAME for licenseServer in q.bi.LICENSE_SERVER_TYPES][q.si.LicenseServerSelector.DFT_OPTION_INDEX - 1],)
     parser.add_argument('-solver', choices=q.ei.AbaqusSolverVersions.SOLVER_LIST,
-        default=q.ei.AbaqusSolverVersions.SOLVER_LIST[q.bi.SolverVersionSelector.DFT_OPTION_INDEX - 1],
+        default=q.ei.AbaqusSolverVersions.SOLVER_LIST[q.si.SolverVersionSelector.DFT_OPTION_INDEX - 1],
         help='ABAQUS solver version. (default=%s)' % q.ei.AbaqusSolverVersions.SOLVER_LIST[
-            q.bi.SolverVersionSelector.DFT_OPTION_INDEX - 1])
+            q.si.SolverVersionSelector.DFT_OPTION_INDEX - 1])
     parser.add_argument('-host', choices=getListOfHosts(), default='mb-so2',
         help='Calculation host. (default=mb-so2)')
     parser.add_argument('-cpu', default=4, type=int, help='Number of CPUs. (default=4)')

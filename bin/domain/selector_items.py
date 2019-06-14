@@ -528,10 +528,25 @@ class PostProcessingSelector(BaseDataSelector):
     
     #-------------------------------------------------------------------------
     
+    def _getPostProcessingTypes(self):
+        
+        solverType = self.parentApplication.profile.job.SOLVER_TYPE
+        
+        postProcessingTypes = list()
+        postProcessingTypes.extend(bi.POST_PROCESSING_TYPES[:2])
+        postProcessingTypes.extend(solverType.POST_PROCESSING_TYPES)
+        postProcessingTypes.extend(bi.POST_PROCESSING_TYPES[2:])
+        
+        return postProcessingTypes
+        
+    #-------------------------------------------------------------------------
+    
     def getOptions(self):
+              
+        postProcessingTypes = self._getPostProcessingTypes()
         
         options = list()
-        for postProcessingOption in bi.POST_PROCESSING_TYPES:   
+        for postProcessingOption in postProcessingTypes:   
             options.append(postProcessingOption.NAME)
         
         return options
@@ -540,7 +555,9 @@ class PostProcessingSelector(BaseDataSelector):
     
     def indexToItem(self, index):
         
-        return bi.POST_PROCESSING_TYPES[index]
+        postProcessingTypes = self._getPostProcessingTypes()
+                
+        return postProcessingTypes[index]
     
     #-------------------------------------------------------------------------
     

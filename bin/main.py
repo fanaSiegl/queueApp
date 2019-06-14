@@ -129,6 +129,8 @@ from domain import utils
 from domain import base_items as bi
 from domain import comp_items as ci
 from domain import enum_items as ei
+from domain import selector_items as si
+from domain import profile_items as pi
 
 from presentation import comp_widgets as cw
 from presentation import base_widgets as bw
@@ -181,7 +183,7 @@ class QueueApplication(QtGui.QApplication):
     def _setupConnections(self):
         
         self.signalGenerator.updateStatus.connect(self._updateQueueStatus)
-        self.mainWindow.centralWidget().queueTabWidget.queueListWidget.itemForTrackingSelected.connect(
+        self.mainWindow.centralWidget().queueTabWidget.queueTreeView.itemForTrackingSelected.connect(
             self._setupJobTracking)
         
         self.mainWindow.runningJobFileListWidget.itemForTrackingSelected.connect(
@@ -209,15 +211,15 @@ class QueueApplication(QtGui.QApplication):
 
     def _setupJobTracking(self, jobItem):
         
-        self.mainWindow.runningJobFileListDock.setVisible(True)
-        self.mainWindow.setDockGeometry(self.mainWindow.runningJobFileListDock)
+#         self.mainWindow.runningJobFileListDock.setVisible(True)
+#         self.mainWindow.setDockGeometry(self.mainWindow.runningJobFileListDock)
         self.mainWindow.runningJobFileListWidget.setupContent(jobItem)
     
     #---------------------------------------------------------------------------
 
     def _setupFileTracking(self, jobItem, fileName):
         
-        self.mainWindow.fileContentTrackerDock.setVisible(True)
+#         self.mainWindow.fileContentTrackerDock.setVisible(True)
 #         self.mainWindow.setDockGeometry(self.mainWindow.fileContentTrackerDock)
         self.mainWindow.fileContentTrackerWidget.setupContent(jobItem, fileName)
         
@@ -286,7 +288,7 @@ class MainWindow(QtGui.QMainWindow):
         self.fileContentTrackerWidget = bw.FileContentTrackerWidget(self)
         self.fileContentTrackerDock = bw.createDock(
             self, 'File content tracker', self.fileContentTrackerWidget)
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.fileContentTrackerDock)
+#         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.fileContentTrackerDock)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.fileContentTrackerDock)
     
     #---------------------------------------------------------------------------
@@ -487,7 +489,7 @@ class Qaba(object):
     
     def setProfile(self):
         
-        profileSelector = ci.AbaqusExecutionProfileSelector(self)
+        profileSelector = pi.AbaqusExecutionProfileSelector(self)
         profileType = profileSelector.getSelection()
         
         return profileType(self)
@@ -554,7 +556,7 @@ class Qpam(Qaba):
     
     def setProfile(self):
                 
-        profileSelector = ci.PamCrashExecutionProfileSelector(self)
+        profileSelector = pi.PamCrashExecutionProfileSelector(self)
         profileType = profileSelector.getSelection()
         
         return profileType(self)
@@ -563,7 +565,7 @@ class Qpam(Qaba):
     
     def setupFromParameters(self):
         
-        self.profile = ci.PamCrashExecutionProfileType(self)
+        self.profile = pi.PamCrashExecutionProfileType(self)
         
         # set input file
         fileNames = [os.path.abspath(fileName) for fileName in self.args.inpFilePath]
@@ -598,7 +600,7 @@ class Qnas(Qaba):
     
     def setProfile(self):
                 
-        profileSelector = ci.NastranExecutionProfileSelector(self)
+        profileSelector = pi.NastranExecutionProfileSelector(self)
         profileType = profileSelector.getSelection()
         
         return profileType(self)
@@ -607,7 +609,7 @@ class Qnas(Qaba):
     
     def setupFromParameters(self):
         
-        self.profile = ci.NastranExecutionProfileType(self)
+        self.profile = pi.NastranExecutionProfileType(self)
         
         # set input file
         fileNames = [os.path.abspath(fileName) for fileName in self.args.inpFilePath]

@@ -11,6 +11,8 @@ import getpass
 import socket
 import logging
 
+from PyQt4 import QtCore, QtGui
+
 #==============================================================================
 
 PATH_BIN = os.path.normpath(os.path.join(
@@ -96,6 +98,16 @@ class ConsoleColors:
     CYAN = "\033[1;36m"
     GREEN = "\033[0;32m"
     MAGENTA = '\033[0;35m'
+
+#==============================================================================
+
+class TreeItemColors:
+    
+    RED = QtGui.QBrush(QtCore.Qt.red)
+    BLUE = QtGui.QBrush(QtCore.Qt.blue)
+    GREEN = QtGui.QBrush(QtCore.Qt.green)
+    CYAN = QtGui.QBrush(QtCore.Qt.cyan)
+    MAGENTA = QtGui.QBrush(QtCore.Qt.magenta)
 
 #=============================================================================
 
