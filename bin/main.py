@@ -21,15 +21,36 @@ Input interface
 Job submitting
 --------------
 
-is base on execution profiles that provide default options (based on 
+is based on execution profiles that provide default options (based on 
 available resources), standard preferred execution settings or 
 can simplify input parameters (e.g. datacheck).
 
 Usage
 =====
 
+qq
+--
+
+graphical interface providing the complete tool functionality.
+
+.. image:: images/qq_01.png
+    :width: 600pt
+    :align: center
+
+Queue monitor
+
+.. image:: images/qq_02.png
+    :width: 600pt
+    :align: center
+
+Submitting tools
+
 q
 --
+
+.. image:: images/q_01.png
+    :width: 600pt
+    :align: center
 
 text based overview of Grid Engine jobs statuses
 
@@ -37,6 +58,10 @@ q
 
 qa
 --
+
+.. image:: images/qa_01.png
+    :width: 600pt
+    :align: center
 
 submits ABAQUS job to Grid Engine
 
