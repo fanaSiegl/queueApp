@@ -115,7 +115,44 @@ class TestPamCrashInpFile(unittest.TestCase):
         
         self.assertRaises(fi.PamCrashInpFileException,
             lambda: fi.PamCrashInpFile(testInpFile))
-
+        
+    #-------------------------------------------------------------------------
+    
+    def test_dataCheck(self):
+        
+        testInpFile = os.path.join(
+            PAMCRASH_INP_FILE_PATH, 'SK3165EUB_BIU_003_datacheck_003_2015.pc')
+        
+        inputFile = fi.PamCrashInpFile(testInpFile)
+        self.assertTrue(inputFile.dataCheck)
+        
+        testInpFile = os.path.join(
+            PAMCRASH_INP_FILE_PATH, 'SK3165EUB_BIU_003_001_103_003_2015.pc')
+        
+        inputFile = fi.PamCrashInpFile(testInpFile)
+        self.assertFalse(inputFile.dataCheck)
+    
+    #-------------------------------------------------------------------------
+    
+    def test_dataCheckModeSwitch(self):
+        
+        testInpFile = os.path.join(
+            PAMCRASH_INP_FILE_PATH, 'SK3165EUB_BIU_003_switch_003_2015.pc')
+        
+        inputFile = fi.PamCrashInpFile(testInpFile)
+        self.assertTrue(inputFile.dataCheck)
+        
+        # switching off data check
+        inputFile.switchDataCheckMode()
+        
+        inputFile = fi.PamCrashInpFile(testInpFile)
+        self.assertFalse(inputFile.dataCheck)
+        
+        # switching on data check
+        inputFile.switchDataCheckMode()
+        
+        inputFile = fi.PamCrashInpFile(testInpFile)
+        self.assertTrue(inputFile.dataCheck)
         
 #==============================================================================
 

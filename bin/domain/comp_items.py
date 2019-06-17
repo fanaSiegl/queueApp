@@ -18,6 +18,7 @@ import utils
 import base_items as bi
 import enum_items as ei
 import selector_items as si
+import profile_items as pi
 from persistent import file_items as fi
 from interfaces import xmlio
 
@@ -50,10 +51,16 @@ class AbaqusJob(object):
     
     #--------------------------------------------------------------------------
     
-    def setInpFile(self, inpFileName):
+    def _checkProfile(self, parentProfile): pass
+    
+    #--------------------------------------------------------------------------
+    
+    def setInpFile(self, inpFileName, parentProfile):
         
         self.inpFile = self.INPUT_FILE_TYPE(inpFileName)
-    
+        
+        self._checkProfile(parentProfile)
+            
     #--------------------------------------------------------------------------
     
     def setRestartInpFile(self, inpFileName):
@@ -172,7 +179,25 @@ class PamCrashJob(AbaqusJob):
     EXECUTABLE_FILE_TYPE = fi.PamCrashJobExecutableFile
     INPUT_FILE_TYPE = fi.PamCrashInpFile
     SOLVER_TYPE = bi.PamCrashSolverType
-            
+    
+    #--------------------------------------------------------------------------
+    
+    def _checkProfile(self, parentProfile):
+        
+        logging.debug('Checking DATACHECK KEY WORD')
+        
+        isDataCheck = self.inpFile.dataCheck
+        if type(parentProfile) is pi.PamCrashDataCheckExecutionProfileType and not isDataCheck:
+            logging.debug('profile: DATACHECK, KEY WORD: N/A - adding')
+            self.inpFile.switchDataCheckMode()
+        elif type(parentProfile) is pi.PamCrashDataCheckExecutionProfileType and isDataCheck:
+            logging.debug('profile: DATACHECK, KEY WORD: PRESENT - OK')
+        elif isDataCheck:
+            logging.debug('profile: EXECUTION, KEY WORD: DATACHECK - removing')
+            self.inpFile.switchDataCheckMode()
+        else:
+            logging.debug('profile: EXECUTION, KEY WORD: N/A - OK')
+    
     #--------------------------------------------------------------------------
     
     def getTokensRequired(self):

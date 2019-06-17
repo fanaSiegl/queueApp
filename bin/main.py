@@ -476,14 +476,15 @@ class Qaba(object):
                 
         for inpFileName in self.profile.inpFileNames:
             newJob = self.profile.job.getCopy()
-            newJob.setInpFile(inpFileName)
+            newJob.setInpFile(inpFileName, self.profile)
             newJob.setExecutableFile(newJob.EXECUTABLE_FILE_TYPE(self, newJob))
             newJob.executableFile.save()
             self.jobs.append(object)
-        
+            
+            logging.debug(newJob.executableFile.getContent())
             logging.debug('qsub %s' % newJob.executableFile.outputFileName)
             if not DEBUG:
-                utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
+                utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)               
 
     #--------------------------------------------------------------------------
     
@@ -521,7 +522,7 @@ class Qaba(object):
     
     def setupFromParameters(self):
         
-        self.profile = ci.BaseExecutionProfileType(self)
+        self.profile = pi.BaseExecutionProfileType(self)
         
         # set input file
         fileNames = [os.path.abspath(fileName) for fileName in self.args.inpFilePath]

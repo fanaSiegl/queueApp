@@ -225,7 +225,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         message = ''
         for inpFileName in self.profile.inpFileNames:
             newJob = self.profile.job.getCopy()
-            newJob.setInpFile(inpFileName)
+            newJob.setInpFile(inpFileName, self.profile)
             newJob.setExecutableFile(newJob.EXECUTABLE_FILE_TYPE(self, newJob))
             newJob.executableFile.save()
 #             self.jobs.append(newJob)
@@ -336,7 +336,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.profile.inpFileNames = inputFiles
         
         if len(inputFiles) > 0:
-            self.profile.job.setInpFile(inputFiles[0])
+            self.profile.job.setInpFile(inputFiles[0], self.profile)
                             
             # check analysis type
             self.noOfGpusSelectorWidget.setDefaultOption(*self.profile.getDftNoOfGpus())
@@ -353,20 +353,11 @@ class BaseSubmitWidget(QtGui.QWidget):
         if self.profile is None:
             self.profile = profileType(self)
             
-        else:
-#             currentJob = self.profile.job
-#             currentSettings = self.profile.jobSettings
-#             currentInpFileNames = self.profile.inpFileNames
-#             currentPostProcessingType = self.profile.postProcessingType
-#             
-#             self.profile = profileType(self)
-#             self.profile.job = currentJob
-#             self.profile.jobSettings = currentSettings
-#             self.profile.inpFileNames = currentInpFileNames
-#             self.profile.postProcessingType = currentPostProcessingType
-            
+        else:            
             self.profile = self.profile.getCopy(profileType)
             
+            # check for input file compatibility with the current profile
+            self.profile.job._checkProfile(self.profile)
         
         self.licenseServerSelectorWidget.setDefaultOption(
             self.profile.getDftLicenseServerOption())

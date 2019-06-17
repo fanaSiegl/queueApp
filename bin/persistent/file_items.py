@@ -131,6 +131,7 @@ class PamCrashInpFile(AbaqusInpFile):
         self.includeFiles = list()
         self.analysisType = None
         self.subAllFiles = False
+        self.dataCheck = False
                 
         self._analyseContent()
         self._checkIncludedFiles(self.includeFiles)
@@ -160,14 +161,51 @@ class PamCrashInpFile(AbaqusInpFile):
                     raise PamCrashInpFileException(
                          'Unknown analysis type: %s' % line)
             elif line.startswith('TITLE'):
-                parts = line.split()
+                parts = rawLine.split()
                 title = parts[-1].strip()
                 if title != self.baseName:
                     raise PamCrashInpFileException(
-                        'TITLE parameter is not consistent with the given file name!\n"%s" != "%s".\nThis may cause unwanted overwriting of existing result!' % (
+                        'TITLE parameter is not consistent with the given file name!\n"%s" != "%s".\nThis may cause unwanted overwriting of existing results!' % (
                             title, self.baseName))
-                    
+            elif line.startswith('DATACHECK'):
+                parts = [p.strip() for p in line.split()]
+                if len(parts) == 3 and parts[1] == 'YES' and parts[2] == 'QUIT':
+                    self.dataCheck = True
+
         fi.close()
+    
+    #-------------------------------------------------------------------------
+    
+    def switchDataCheckMode(self):
+        
+        fi = open(self.fileName, 'rt')
+                
+        content = list()
+        for line in fi.readlines():
+            # line with commands is non-case sensitive except parameters
+            rawLine = line
+            line = line.upper()            
+            if line.startswith('DATACHECK'):
+                parts = [p.strip() for p in line.split()]
+                
+                # data check present - removing
+                if len(parts) == 3 and parts[1] == 'YES' and parts[2] == 'QUIT':
+                    rawLine = 'DATACHECK YES\n'
+                    self.dataCheck = False
+                    
+                # data check not present - adding
+                else:
+                    rawLine = 'DATACHECK YES QUIT\n'
+                    self.dataCheck = True
+            content.append(rawLine)
+        fi.close()
+        
+        # write a new file
+        fo = open(self.fileName, 'wt')
+        for line in content:
+            fo.write(line)
+        fo.close()
+        
 
 #==============================================================================
 

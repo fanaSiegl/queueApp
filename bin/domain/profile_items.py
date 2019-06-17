@@ -678,11 +678,11 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
         inpSelector = si.PamcrashInputFileSelector(self.parentApplication)
         self.inpFileNames = inpSelector.getSelection()
         
-        self.job.setInpFile(self.inpFileNames[0])
+        self.job.setInpFile(self.inpFileNames[0], self)
         
         logging.info('Selected file(s): %s' % ', '.join([
             os.path.basename(inpFileName) for inpFileName in self.inpFileNames]))
-        
+                
     #--------------------------------------------------------------------------
 
     def _setLicenseServer(self):
