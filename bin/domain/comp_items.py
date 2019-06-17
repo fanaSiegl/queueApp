@@ -597,7 +597,7 @@ class Resources(object):
                                 'metaSessionPath' : sessionFilePath,
                                 'NAME' : path})
                         
-                        solverType.POST_PROCESSING_TYPES.append(newClass)
+                        solverType.registerPostProcessingType(newClass)
                             
     #--------------------------------------------------------------------------
 #     @classmethod

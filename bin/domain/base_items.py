@@ -47,6 +47,14 @@ class BaseSolverType(object):
                 return solverType
         
         return UnknownSolverType
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def registerPostProcessingType(cls, postType):
+        
+        if postType.NAME not in [p.NAME for p in cls.POST_PROCESSING_TYPES]:
+            cls.POST_PROCESSING_TYPES.append(postType)
+        
 
 #==============================================================================
 @utils.registerClass
@@ -659,7 +667,7 @@ class NoPostProcessingType(BasePostProcessingType):
 @utils.registerClass
 class MetaConversionPostProcessingType(BasePostProcessingType):
     
-    NAME = 'Meta Conversion'
+    NAME = 'Use local Meta_queue_session.ses'
     ID = 1
     
     #--------------------------------------------------------------------------
@@ -684,12 +692,12 @@ fi
             {'jobname' : self.parentJob.inpFile.baseName,
              'meta_executable' : ei.META_EXECUTABLE})
 
-#==============================================================================
-@utils.registerClass
-class ResultsDeletingPostProcessingType(BasePostProcessingType):
-    
-    NAME = 'Results deleting'
-    ID = 2
+# #==============================================================================
+# @utils.registerClass
+# class ResultsDeletingPostProcessingType(BasePostProcessingType):
+#     
+#     NAME = 'Results deleting'
+#     ID = 2
 
 #==============================================================================
 

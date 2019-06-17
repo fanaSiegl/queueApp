@@ -438,6 +438,8 @@ class BaseSubmitWidget(QtGui.QWidget):
     
     def _setPostProcessingType(self, postProcessingType):
         
+        logging.debug('Setting post-processing to: %s' % postProcessingType.NAME)
+                
         self.profile.postProcessingType = postProcessingType(self.profile.job)
         
 #===============================================================================
@@ -553,7 +555,7 @@ class PamCrashSubmitWidget(BaseSubmitWidget):
         selectorItem = si.PostProcessingSelector(self)
         self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
-        self.postProcessingSelectorWidget.setEnabled(False)
+#         self.postProcessingSelectorWidget.setEnabled(False)
         
         # left pane
         selectorItem = si.PamcrashInputFileSelector(self)
@@ -616,7 +618,7 @@ class NastranSubmitWidget(BaseSubmitWidget):
         selectorItem = si.PostProcessingSelector(self)
         self.postProcessingSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.postProcessingSelectorWidget)
-        self.postProcessingSelectorWidget.setEnabled(False)
+#         self.postProcessingSelectorWidget.setEnabled(False)
         
         # left pane
         selectorItem = si.NastranInputFileSelector(self)

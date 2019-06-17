@@ -660,6 +660,8 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
     
     NAME = 'PamCrash analysis'
     ID = 0
+    
+    DFT_POSTPROCESSING_OPTION_INDEX = 2
         
     def __init__(self, parentApplication):
         
@@ -717,9 +719,9 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
     
     #--------------------------------------------------------------------------
     
-    def _setPostProcessingType(self):
-        
-        pass
+#     def _setPostProcessingType(self):
+#         
+#         pass
     
     #--------------------------------------------------------------------------
     
@@ -784,6 +786,7 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
             return 0, 0, 0
                 
         return 0, self.jobSettings.executionServer.NO_OF_GPU, 0
+    
         
 #==============================================================================
 @utils.registerClass
@@ -830,6 +833,12 @@ class PamCrashDataCheckExecutionProfileType(PamCrashExecutionProfileType):
     #--------------------------------------------------------------------------
     
     def _setJobPriority(self): pass
+    
+    #--------------------------------------------------------------------------
+    
+    def _setPostProcessingType(self):
+         
+        pass
     
     #--------------------------------------------------------------------------
     
@@ -918,12 +927,6 @@ class NastranExecutionProfileType(BaseExecutionProfileType):
                         
         self.job.setNumberOfGPUCores(0)
             
-    #--------------------------------------------------------------------------
-    
-    def _setPostProcessingType(self):
-        
-        pass
-    
     #--------------------------------------------------------------------------
 
     def getDftLicenseServerOption(self):

@@ -533,10 +533,10 @@ class PostProcessingSelector(BaseDataSelector):
         solverType = self.parentApplication.profile.job.SOLVER_TYPE
         
         postProcessingTypes = list()
-        postProcessingTypes.extend(bi.POST_PROCESSING_TYPES[:2])
+        postProcessingTypes.extend(bi.POST_PROCESSING_TYPES)#[:2])
         postProcessingTypes.extend(solverType.POST_PROCESSING_TYPES)
-        postProcessingTypes.extend(bi.POST_PROCESSING_TYPES[2:])
-        
+#         postProcessingTypes.extend(bi.POST_PROCESSING_TYPES[2:])
+                
         return postProcessingTypes
         
     #-------------------------------------------------------------------------
