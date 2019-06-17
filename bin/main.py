@@ -571,7 +571,7 @@ class Qpam(Qaba):
         # set input file
         fileNames = [os.path.abspath(fileName) for fileName in self.args.inpFilePath]
         self.profile.inpFileNames = fileNames
-        self.profile.job.setInpFile(fileNames[0])
+        self.profile.job.setInpFile(fileNames[0], self.profile)
         
         # set license server
         licenseServer = bi.PamCrashLicenseServerType

@@ -55,7 +55,7 @@ class AbaqusJob(object):
     
     #--------------------------------------------------------------------------
     
-    def setInpFile(self, inpFileName, parentProfile):
+    def setInpFile(self, inpFileName, parentProfile=None):
         
         self.inpFile = self.INPUT_FILE_TYPE(inpFileName)
         
