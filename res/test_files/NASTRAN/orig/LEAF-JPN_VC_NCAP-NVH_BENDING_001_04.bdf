@@ -1,0 +1,57 @@
+$ANSA_GENERAL_COMMENT;~
+$$ Project:     NISSAN~
+$$ Description: BiW static analysis~
+$$ Responsible: Jan Stekly, IDIADA~
+$~
+$$ Modification history:~
+$$~
+$n LEAF-JPN_VC_NCAP-NVH_BENDING_001_01~
+$i   BiW static analysis~
+$d   23.07.2018~
+$a   Pavel Hendrych, IDIADA~
+$c   -Nastran model from explicit MDB: LEAF-JPN_VC_NCAP-CAR_IIHS_01.pc~
+$c   -bending loadcase~
+$n LEAF-JPN_VC_NCAP-NVH_BENDING_001_02~
+$i   no axis~
+$d   25.07.2018~
+$a   Pavel Hendrych, IDIADA~
+$c   -axis deleted~
+$c   -new: nissan_modal7.bdf~
+$n LEAF-JPN_VC_NCAP-NVH_BENDING_001_04~
+$i   mat correction~
+$d   02.08.2018~
+$a   Pavel Hendrych, IDIADA~
+$c   -materail propreties according NISSAN recomendation~
+$c   -new: LEAF-NVH_no_axes_01.inc~
+$r   - ~
+$~
+$##############################################################################
+$
+NASTRAN FBSMEM=1
+$
+$
+SOL 101
+TIME   3.15E7
+CEND
+$
+SPC         =4
+$
+SUBCASE 1
+  TITLE       =bending
+  SUBTITLE    =linear static analysis
+  LOAD        =7
+  DISPLACEMENT(SORT1,PLOT,REAL)=ALL
+  STRESS      (SORT1,PLOT,REAL,VONMISES,BILIN)=ALL
+  ESE(SORT1,PLOT)=ALL
+  SPCFORCE(SORT1,PUNCH)=ALL
+$
+$
+BEGIN BULK
+PARAM,POST,-1
+$PARAM,TINY, 1E-3
+PARAM,K6ROT,1.0
+SWLDPRM   GSPROJ     -1. PROJTOL     0.2  GSMOVE       4  NREDIA       4
+INCLUDE 'LEAF-NVH_no_axes_01.inc'
+ENDDATA
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$

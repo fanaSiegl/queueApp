@@ -148,9 +148,9 @@ class PamCrashInpFile(AbaqusInpFile):
             line = line.upper()
             if line.startswith('INCLU'):
                 parts = rawLine.split()
-                includePart = parts[-1].strip()
-                includeFileParts = includePart.split('/')[1:]
-                includeFile = '/'.join(includeFileParts) 
+                includeFile = parts[-1].strip()
+#                 includeFileParts = includePart.split('/')[1:]
+#                 includeFile = '/'.join(includeFileParts)
                 
                 self.includeFiles.append(includeFile)
             elif line.startswith('ANALYSIS'):
@@ -307,9 +307,9 @@ class AbaqusJobExecutableFile(object):
         content = self._getDescriptionContent()
 
         content += '\n/bin/uname -a\n\n'
-        content += 'echo "Starting %s"\n' % self.parentProfile.SOLVER_TYPE.NAME#self.SOLVER_NAME
+        content += 'echo "Starting %s"\n' % self.parentProfile.SOLVER_TYPE.NAME
         content += self._getRunCommand()
-        content += 'echo "%s finished"\n' % self.parentProfile.SOLVER_TYPE.NAME#self.SOLVER_NAME
+        content += 'echo "%s finished with the status:" $?\n' % self.parentProfile.SOLVER_TYPE.NAME
         content += self.postProcessingType.getContent()
         
         return content
@@ -387,12 +387,12 @@ class AbaqusJobExecutableFile(object):
         content += 'cd $scratch_dir\n'
         
         return content
-    
+        
     #--------------------------------------------------------------------------
     
     def _getJobFeatures(self):
         
-        features = 'qxt%s=%s' % (self.jobSettings.licenseServer.ID + 1,
+        features = '%s=%s' % (self.jobSettings.licenseServer.QUEUE_CODE,
                 self.parentJob.getTokensRequired())
         
         return features
@@ -473,12 +473,12 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
     
     #--------------------------------------------------------------------------
     
-    def _getJobFeatures(self):
-        
-        features = '%s=%s' % (self.jobSettings.licenseServer.CODE,
-                self.parentJob.getTokensRequired())
-        
-        return features
+#     def _getJobFeatures(self):
+#         
+#         features = '%s=%s' % (self.jobSettings.licenseServer.CODE,
+#                 self.parentJob.getTokensRequired())
+#         
+#         return features
 
 #==============================================================================
 

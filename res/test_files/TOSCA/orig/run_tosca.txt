@@ -1,0 +1,1 @@
+tosca19 -j  *.par -scpus 4 [pocet jader FE solveru] -cpus 4 [pocet jader Tosca]

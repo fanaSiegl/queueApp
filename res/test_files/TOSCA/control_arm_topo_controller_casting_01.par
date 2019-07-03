@@ -1,0 +1,84 @@
+! Parameter file for Topology Optimization
+! Created with SIMULIA Tosca Structure 2019 2019
+! Date         : Fri Mar 22 14:20:57 CET 2019
+! Author       : MCA
+! Remarks      : 
+! Description  : Suspension control arm
+
+FEM_INPUT
+  ID_NAME        = INPUT_FILE
+  FILE           = control_arm_whole.inp
+END_
+
+! define the design variables
+DV_TOPO
+  ID_NAME        = DESIGN_VARIABLES
+  EL_GROUP       = DESIGN_ELEMENTS
+END_
+
+! define the design response 'volume'
+DRESP
+  ID_NAME        = DRESP_VOL_TOPO
+  DEF_TYPE       = SYSTEM
+  TYPE           = VOLUME
+  EL_GROUP       = DESIGN_ELEMENTS
+  GROUP_OPER     = SUM
+END_
+
+! define the volume constraint
+CONSTRAINT
+  ID_NAME        = VOLUME_CONSTRAINT
+  DRESP          = DRESP_VOL_TOPO
+  MAGNITUDE      = REL
+  EQ_VALUE       = 0.7
+END_
+
+! maximize the stiffness
+DRESP
+  ID_NAME        = DRESP_SUM_ENERGY
+  DEF_TYPE       = SYSTEM
+  TYPE           = STRAIN_ENERGY
+  EL_GROUP       = ALL_ELEMENTS
+  GROUP_OPER     = SUM
+END_
+
+OBJ_FUNC
+  ID_NAME        = MAXIMIZE_STIFFNESS
+  DRESP          = DRESP_SUM_ENERGY, ,  
+  TARGET         = MIN
+END_
+
+! define the dv constraint for the cast restriction
+DVCON_TOPO
+  ID_NAME        = DVCON_CAST
+  EL_GROUP       = ALL_ELEMENTS
+  CHECK_TYPE     = CAST
+  PULL_DIR       = 0, 0.0, 1
+  CHECK_GROUP    = ALL_ELEMENTS
+  MID_PLANE      = AUTO
+END_
+
+! define the optimization Task
+OPTIMIZE
+  ID_NAME        = TOPOLOGY_OPTIMIZATION
+  STRATEGY       = TOPO_CONTROLLER
+  DV             = DESIGN_VARIABLES
+  OBJ_FUNC       = MAXIMIZE_STIFFNESS
+  DVCON          = DVCON_CAST
+  CONSTRAINT     = VOLUME_CONSTRAINT
+END_
+
+! define a default smooth Task
+STOP
+  ID_NAME        = MY_STOP
+  ITER_MAX       = 15
+END_
+
+SMOOTH
+  ID_NAME        = mySmooth
+  TASK           = iso
+  ISO_VALUE      = 0.3
+  FORMAT         = vtf
+END_
+
+EXIT
