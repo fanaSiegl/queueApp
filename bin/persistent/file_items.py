@@ -378,7 +378,7 @@ class AbaqusJobExecutableFile(object):
         content += '#$ -a %s\n' % self.parentJob.startTime
         if len(self.user.email) > 0:
             content += '#$ -M %s\n' % self.user.email
-            content += '#$ -m bes\n'
+            content += '#$ -m beas\n'
         
         content += 'umask 0002\n'
         
@@ -463,7 +463,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         content += '#$ -a %s\n' % self.parentJob.startTime
         if len(self.user.email) > 0:
             content += '#$ -M %s\n' % self.user.email
-            content += '#$ -m bes\n'
+            content += '#$ -m beas\n'
                 
         content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
             self.jobSettings.SCRATCH_PATH, self.user.name)

@@ -500,18 +500,23 @@ class Resources(object):
         jobAttributes = xmlio.GridEngineInterface.getQueueStat()
         allLicenseTakingJobs = cls._getOutOfQueueJobsStat()
         
-        # check finished jobs
         outOfTheQueueTags = dict()
+        hasJustFinishedTags = list()
+        
+        # check finished jobs
+        currentJobIds = [jobAttribute['JB_job_number'] for jobAttribute in jobAttributes]
+        
         for job in cls.jobsInQueue.values():
-            if job.hasFinished:
+            if job.id not in currentJobIds:
+                job.setHasFinished(True)
                 cls.jobsInQueue.pop(job.id)
-            
-            # gather all current out of the queue jobs
+                hasJustFinishedTags.append(job.jobTag)
+                
+            # gather all existing out of the queue jobs
             if job.isOutOfTheQueue:
                 outOfTheQueueTags[job.jobTag] = job
-                
-                
-        # always clear content
+                        
+        # check job states
         uniqueJobTags = list()
         for jobAttribute in jobAttributes:
             
@@ -520,7 +525,7 @@ class Resources(object):
             
             # update already existing job in the queue
             if currentJobId in cls.jobsInQueue:
-                cls.jobsInQueue[currentJobId].updateAttributes()
+                cls.jobsInQueue[currentJobId].updateAttributes(jobAttribute)
                 
             # add a new job
             else:
@@ -528,7 +533,6 @@ class Resources(object):
                 cls.jobsInQueue[job.id] = job
                             
             uniqueJobTags.append(jobTag)
-            jobTag = RunningJob.getTag(jobAttribute)
         
         newOutOfTheQueueTags = list()
         for jobAttribute in allLicenseTakingJobs: 
@@ -536,7 +540,7 @@ class Resources(object):
             jobTag = RunningJob.getTag(jobAttribute)
             
             # add a new out of the queue job
-            if jobTag not in uniqueJobTags:
+            if jobTag not in uniqueJobTags and jobTag not in hasJustFinishedTags:
                 job = RunningJob(jobAttribute)
                 cls.jobsInQueue[job.id] = job
                 newOutOfTheQueueTags.append(job.jobTag)
@@ -547,7 +551,7 @@ class Resources(object):
         for job in outOfTheQueueTags.values():
             if job.jobTag not in newOutOfTheQueueTags:
                 job.setHasFinished(True)
-    
+            
     #--------------------------------------------------------------------------
     @classmethod
     def _getTokenStatus(cls):
@@ -674,8 +678,8 @@ class RunningJob(object):
         
         self.hasFinished = state
         
-#         if self.hasFinished and self.treeItem is not None:
-#             self.treeItem.delete()
+        if self.hasFinished and self.treeItem is not None:
+            self.treeItem.parentJobFinished()
          
     #--------------------------------------------------------------------------
     
@@ -686,13 +690,10 @@ class RunningJob(object):
         
         stdout, _ = utils.runSubprocess('qstat -j %s' % self.id)
         
-        for line in stdout.splitlines()[1:]:
+        lines = stdout.splitlines()
+        for line in lines[1:]:
             parts = line.split(':')
             self._attributes[parts[0]] = ', '.join([p.strip() for p in parts[1:]])
-            
-            # check if the job has already finished
-            if 'do not exist' in line:
-                self.setHasFinished(True)
             
         # prevent None in queue_name
         queueName = self._attributes['queue_name']
@@ -707,7 +708,9 @@ class RunningJob(object):
                     
     #--------------------------------------------------------------------------
     
-    def updateAttributes(self):
+    def updateAttributes(self, attributes):
+        
+        self._attributes = attributes
         
         thread.start_new_thread(self._setDetailedAttributes, ())
     
@@ -738,7 +741,11 @@ class RunningJob(object):
     def getAttribute(self, attributeName):
         
         if attributeName in self._attributes:
-            return self._attributes[attributeName]
+            value = self._attributes[attributeName]
+            if value is None:
+                return '' 
+            else:
+                return value
         else:
             return ''
         
@@ -938,6 +945,12 @@ class Queue(object):
         
         for jobs in self.jobsBySolver.values():
             self.jobs.extend(jobs)
+    
+    #--------------------------------------------------------------------------
+    
+    def getJobsInQueue(self):
+        
+        return self.resources.jobsInQueue.values()
                     
     #--------------------------------------------------------------------------
     

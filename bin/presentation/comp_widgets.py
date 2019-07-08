@@ -87,7 +87,7 @@ class CentralWidget(QtGui.QWidget):
 #===============================================================================
 
 class QueueWidget(QtGui.QWidget):
-    
+        
     def __init__(self, parentCentralWidget):
         super(QueueWidget, self).__init__()
         
@@ -115,23 +115,35 @@ class QueueWidget(QtGui.QWidget):
     #--------------------------------------------------------------------------
     
     def updateContent(self):
-        
-        for job in self.queue.jobs:
+                
+        for job in self.queue.getJobsInQueue():
             # add a new job or remove job
             if job.treeItem is None:
                 jobTreeItem = models.QueueJobTreeItem(job)
+                job.setTreeItem(jobTreeItem)
                 self.queueTreeView.model().appendRow(jobTreeItem.getRow())
+                
+                jobTreeItem.hasFinished.connect(self._removeFinishedJob)
+                
             
-        # remove finished jobs
-        for rowId in range(self.queueTreeView.model().rowCount())[::-1]:
-            itemIndex = self.queueTreeView.model().index(rowId, 0)
-            item = self.queueTreeView.model().itemFromIndex(itemIndex)
-            
-            if item.dataItem.hasFinished:
-                self.queueTreeView.model().removeRows(itemIndex.row(), 1)
+#         # remove finished jobs
+#         for rowId in range(self.queueTreeView.model().rowCount())[::-1]:
+#             itemIndex = self.queueTreeView.model().index(rowId, 0)
+#             item = self.queueTreeView.model().itemFromIndex(itemIndex)
+#             
+#             if item.dataItem.hasFinished:
+#                 self.queueTreeView.model().removeRows(itemIndex.row(), 1)
             
         self.queueTreeView.updateViewHeader()
-     
+    
+    #--------------------------------------------------------------------------
+    
+    def _removeFinishedJob(self, attributeTreeItem):
+                
+        itemIndex = self.queueTreeView.model().indexFromItem(attributeTreeItem)
+        self.queueTreeView.model().removeRows(itemIndex.row(), 1)
+        
+        
 #===============================================================================
 
 class BaseSubmitWidget(QtGui.QWidget):
@@ -252,11 +264,14 @@ class BaseSubmitWidget(QtGui.QWidget):
                 
             message += 'Submitting job: %s\n' % newJob.inpFile.baseName
             
-            if self.parentApplication.DEBUG:
-                logging.debug(newJob.executableFile.getContent())
-            else:
-                utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)
-        
+            logging.debug(message)
+            logging.debug(newJob.executableFile.getContent())
+            
+            if not self.parentApplication.DEBUG:
+                utils.runSubprocess(
+                    'qsub %s' % newJob.executableFile.outputFileName,
+                    cwd = newJob.inpFile.dirName)   
+                        
         self.parentApplication.showInfoMessage(message)
     
     #--------------------------------------------------------------------------
@@ -449,7 +464,7 @@ class AbaqusSubmitWidget(BaseSubmitWidget):
     ID = 0
     NAME = 'Submit ABAQUS'
     
-#--------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
 
     def _setupWidgets(self):
         

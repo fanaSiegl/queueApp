@@ -509,7 +509,9 @@ class Qaba(object):
             logging.debug(newJob.executableFile.getContent())
             logging.debug('qsub %s' % newJob.executableFile.outputFileName)
             if not DEBUG:
-                utils.runSubprocess('qsub %s' % newJob.executableFile.outputFileName)               
+                utils.runSubprocess(
+                    'qsub %s' % newJob.executableFile.outputFileName,
+                    cwd = newJob.inpFile.dirName)         
 
     #--------------------------------------------------------------------------
     

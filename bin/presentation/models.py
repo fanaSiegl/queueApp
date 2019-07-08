@@ -45,10 +45,10 @@ class BaseAttributeTreeItem(QtGui.QStandardItem):
         jobContentAction = menu.addAction('Check progress')
         jobKillAction = menu.addAction('Terminate')
         
-        jobInfoAction.triggered.connect(self.jobInfo)
+        jobInfoAction.triggered.connect(self._jobInfo)
         jobContentAction.triggered.connect(
-            lambda: self.showContent(parentWidget))
-        jobKillAction.triggered.connect(self.jobTerminate)
+            lambda: self._showContent(parentWidget))
+        jobKillAction.triggered.connect(self._jobTerminate)
         
         # check autority
 #         if parentWidget.parentApplication.userName != self.dataItem['JB_owner']:
@@ -65,7 +65,7 @@ class BaseAttributeTreeItem(QtGui.QStandardItem):
     
     #------------------------------------------------------------------------------ 
     
-    def jobTerminate(self):
+    def _jobTerminate(self):
         
         quitMsg = "Are you sure to terminate the job?"
         reply = QtGui.QMessageBox.question(None, 'Exit', 
@@ -79,34 +79,35 @@ class BaseAttributeTreeItem(QtGui.QStandardItem):
     
     #------------------------------------------------------------------------------ 
     
-    def jobInfo(self):
+    def _jobInfo(self):
         
         QtGui.QMessageBox.information(None, 'Job %s info' % self.dataItem.id,
                 str(self.dataItem.getInfo()))
         
     #------------------------------------------------------------------------------ 
     
-    def showContent(self, parentWidget):
+    def _showContent(self, parentWidget):
         
         parentWidget.itemForTrackingSelected.emit(self.dataItem)
             
             
 #=============================================================================
 
-class QueueJobTreeItem(QtGui.QStandardItem):
+class QueueJobTreeItem(QtCore.QObject):
     
     ICON_PATH = ''
+    hasFinished = QtCore.pyqtSignal(object)
     
     def __init__(self, dataItem):
         
         self.dataItem = dataItem
-        self.dataItem.setTreeItem(self)
         
-        super(QueueJobTreeItem, self).__init__(self.dataItem.name)
-        
-        self.setIcon(QtGui.QIcon(self.ICON_PATH))
-        self.setToolTip(self.dataItem.name)
-        self.setEditable(False)
+        super(QueueJobTreeItem, self).__init__()
+#         super(QueueJobTreeItem, self).__init__(self.dataItem.name)
+#         
+#         self.setIcon(QtGui.QIcon(self.ICON_PATH))
+#         self.setToolTip(self.dataItem.name)
+#         self.setEditable(False)
         
         self.attributeItems = dict()
     
@@ -135,23 +136,30 @@ class QueueJobTreeItem(QtGui.QStandardItem):
         
         return row
     
-    #------------------------------------------------------------------------------ 
+    #------------------------------------------------------------------------------
     
-    def openContextMenu(self, parentView):
+    def parentJobFinished(self):
         
-        menu = QtGui.QMenu()
-        collapseAction = menu.addAction("Collapse children")
-        collapseAction.triggered.connect(lambda: self._collapseChildren(parentView))
-        
-        menu.exec_(QtGui.QCursor.pos())
+        attrModelItem = self.attributeItems[self.attributeItems.keys()[0]]
+        self.hasFinished.emit(attrModelItem)
     
     #------------------------------------------------------------------------------ 
-    
-    def _collapseChildren(self, parentView):
-            
-        for row in range(self.rowCount()):
-            child = self.child(row)
-            parentView.collapse(child.index())
+#     
+#     def openContextMenu(self, parentView):
+#         
+#         menu = QtGui.QMenu()
+#         collapseAction = menu.addAction("Collapse children")
+#         collapseAction.triggered.connect(lambda: self._collapseChildren(parentView))
+#         
+#         menu.exec_(QtGui.QCursor.pos())
+#     
+#     #------------------------------------------------------------------------------ 
+#     
+#     def _collapseChildren(self, parentView):
+#             
+#         for row in range(self.rowCount()):
+#             child = self.child(row)
+#             parentView.collapse(child.index())
     
     
 #=============================================================================
