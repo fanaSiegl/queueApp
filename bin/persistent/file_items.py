@@ -309,7 +309,9 @@ class AbaqusJobExecutableFile(object):
         content += '\n/bin/uname -a\n\n'
         content += 'echo "Starting %s"\n' % self.parentProfile.SOLVER_TYPE.NAME
         content += self._getRunCommand()
-        content += 'echo "%s finished with the status:" $?\n' % self.parentProfile.SOLVER_TYPE.NAME
+        content += 'echo "%s finished with the status:" $?\n\n' % self.parentProfile.SOLVER_TYPE.NAME
+        content += '# now sleep until lock file disappears\n'
+        content += 'sleep 30 && while [ -f %s.lck ]; do sleep 5; done\n' % self.parentJob.inpFile.baseName
         content += self.postProcessingType.getContent()
         
         return content
@@ -424,6 +426,22 @@ class AbaqusJobExecutableFile(object):
 class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
     
 #     SOLVER_NAME = 'PAMCRASH'
+
+    #-------------------------------------------------------------------------
+
+    def getContent(self):
+        
+        content = self._getDescriptionContent()
+
+        content += '\n/bin/uname -a\n\n'
+        content += 'echo "Starting %s"\n' % self.parentProfile.SOLVER_TYPE.NAME
+        content += self._getRunCommand()
+        content += 'echo "%s finished with the status:" $?\n\n' % self.parentProfile.SOLVER_TYPE.NAME
+        content += '# now sleep\n'
+        content += 'sleep 10\n'
+        content += self.postProcessingType.getContent()
+        
+        return content
     
     #-------------------------------------------------------------------------
     

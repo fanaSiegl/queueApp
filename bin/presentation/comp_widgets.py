@@ -139,9 +139,13 @@ class QueueWidget(QtGui.QWidget):
     #--------------------------------------------------------------------------
     
     def _removeFinishedJob(self, attributeTreeItem):
-                
-        itemIndex = self.queueTreeView.model().indexFromItem(attributeTreeItem)
-        self.queueTreeView.model().removeRows(itemIndex.row(), 1)
+        
+        try:
+            itemIndex = self.queueTreeView.model().indexFromItem(attributeTreeItem)
+            self.queueTreeView.model().removeRows(itemIndex.row(), 1)
+        except Exception as e:
+            logging.debug('Tree item has been already deleted from the queue.')
+            
         
         
 #===============================================================================

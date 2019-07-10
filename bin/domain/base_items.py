@@ -675,16 +675,14 @@ class MetaConversionPostProcessingType(BasePostProcessingType):
     def getContent(self):
         
         template = Template('''
-# now sleep until lock file disappears
-sleep 30 && while [ -f $jobname.lck ]; do sleep 5; done
-
-if [ -r META_queue_session.ses -a -f $meta_executable ]; then   #konverze do metadb
-    echo "Startuji konverzi do Metadb"
-    echo "Startuji konverzi do Metadb" >> $jobname.log
+# postprocessing - conversion to metadb
+if [ -r META_queue_session.ses -a -f $meta_executable ]; then
+    echo "Starting conversion to Metadb"
+    echo "Starting conversion to Metadb" >> $jobname.log
     $meta_executable -b -foregr -virtualx_64bit -s META_queue_session $jobname &>> $jobname.log
     sleep 5
-    echo "Koncim konverzi do Metadb"
-    echo "Koncim konverzi do Metadb" >> $jobname.log
+    echo "Conversion to Metadb finished"
+    echo "Conversion to Metadb finished" >> $jobname.log
 fi
 ''')
 
@@ -712,16 +710,15 @@ class BaseMetaPostProcessingType(BasePostProcessingType):
     def getContent(self):
         
         template = Template('''
-# now sleep until lock file disappears
-sleep 30 && while [ -f $jobname.lck ]; do sleep 5; done
-
-if [ -r META_queue_session.ses -a -f $meta_executable ]; then   #konverze do metadb
-    echo "Startuji konverzi do Metadb"
-    echo "Startuji konverzi do Metadb" >> $jobname.log
-    $meta_executable -b -foregr -virtualx_64bit -s $meta_session_name $jobname &>> $jobname.log
+# postprocessing - META
+metaSessionName=$meta_session_name
+if [ -r META_queue_session.ses -a -f $meta_executable ]; then
+    echo "Starting META postprocessing"
+    echo "Starting META postprocessing" >> $jobname.log
+    $meta_executable -b -foregr -virtualx_64bit -s $metaSessionName $jobname &>> $jobname.log
     sleep 5
-    echo "Koncim konverzi do Metadb"
-    echo "Koncim konverzi do Metadb" >> $jobname.log
+    echo "META postprocessing finished"
+    echo "META postprocessing finished" >> $jobname.log
 fi
 ''')
 

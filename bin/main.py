@@ -201,6 +201,8 @@ class QueueApplication(QtGui.QApplication):
         
         self._updateQueueStatus()
         
+        logging.debug(10*'#' + ' Data initialisation completed ' + 10*'#')
+                
         self.mainWindow.show()
     
     #---------------------------------------------------------------------------
