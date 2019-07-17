@@ -423,6 +423,8 @@ class BaseExecutionServerType(object):
     
     PATTERN = ''
     
+    SOLVER_PARAMS = None
+    
     resources = None
     
     #-------------------------------------------------------------------------
@@ -611,6 +613,8 @@ class So3ExecutionServerType(BaseExecutionServerType):
     DESCRIPTION = 'best performance'
     
     PATTERN = r'.*@(.*-so3)\.cax\.lan'
+    
+    SOLVER_PARAMS = 'threads=4'
 
 #==============================================================================
 @utils.registerClass
@@ -679,7 +683,7 @@ class MetaConversionPostProcessingType(BasePostProcessingType):
 if [ -r META_queue_session.ses -a -f $meta_executable ]; then
     echo "Starting conversion to Metadb"
     echo "Starting conversion to Metadb" >> $jobname.log
-    $meta_executable -b -foregr -virtualx_64bit -s META_queue_session $jobname &>> $jobname.log
+    $meta_executable -b -foregr -virtualx_64bit -s META_queue_session.ses $jobname &>> $jobname.log
     sleep 5
     echo "Conversion to Metadb finished"
     echo "Conversion to Metadb finished" >> $jobname.log
@@ -712,7 +716,7 @@ class BaseMetaPostProcessingType(BasePostProcessingType):
         template = Template('''
 # postprocessing - META
 metaSessionName=$meta_session_name
-if [ -r META_queue_session.ses -a -f $meta_executable ]; then
+if [ -r $metaSessionName -a -f $meta_executable ]; then
     echo "Starting META postprocessing"
     echo "Starting META postprocessing" >> $jobname.log
     $meta_executable -b -foregr -virtualx_64bit -s $metaSessionName $jobname &>> $jobname.log

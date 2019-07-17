@@ -255,7 +255,7 @@ class InputFileSelector(BaseDataSelector):
 
     def getOptions(self):
         
-        return glob.glob(os.path.join(self.parentApplication.getWorkDir(), '*%s' % self.FILE_EXT))
+        return sorted(glob.glob(os.path.join(self.parentApplication.getWorkDir(), '*%s' % self.FILE_EXT)))
     
     #--------------------------------------------------------------------------
     

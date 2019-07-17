@@ -382,6 +382,14 @@ class BaseSubmitWidget(QtGui.QWidget):
             self.profile.getDftLicenseServerOption())
         self.solverParametersSelectorWidget.setDefaultOption(
             self.profile.getDftAdditionalSolverParams())
+        self.postProcessingSelectorWidget.setDefaultOption(
+            self.profile.getDftPostProcessingOption())
+        
+        self._checkProfileAllowedParameters()
+        
+    #--------------------------------------------------------------------------
+
+    def _checkProfileAllowedParameters(self): pass
                 
     #--------------------------------------------------------------------------
 
@@ -521,6 +529,22 @@ class AbaqusSubmitWidget(BaseSubmitWidget):
         selectorItem = si.ExecutionServerSelector(self)
         self.executionServerSelectorWidget = bw.ExecutionServerSelectorWidget(selectorItem)
         self.leftPaneWidget.layout().addWidget(self.executionServerSelectorWidget)
+    
+    #--------------------------------------------------------------------------
+
+    def _checkProfileAllowedParameters(self):
+        
+        restrictedProfileTypes = pi.ABAQUS_RESTRICTED_PROFILE_TYPES.values()
+        
+        if type(self.profile) in restrictedProfileTypes:
+            value = False
+        else:
+            value = True
+        self.licenseServerSelectorWidget.setEnabled(value)
+        self.noOfCoresSelectorWidget.setEnabled(value)
+        self.noOfGpusSelectorWidget.setEnabled(value)
+        self.executionServerSelectorWidget.setEnabled(value)
+        
         
     
 #===============================================================================

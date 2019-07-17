@@ -56,17 +56,26 @@ def runSubprocess(command, returnOutput=True, cwd=None):
 
 def registerClass(cls):
     
-    if type(cls.container) is dict:
-        cls.container[cls.NAME] = cls
-    elif type(cls.container) is list:
+    def registerToContainer(container, listIdName='ID'):
         
-        if hasattr(cls, 'ID'):
-            if cls.ID >= len(cls.container):
-                cls.container.extend((cls.ID - len(cls.container) + 1)*[None])
-            cls.container[cls.ID] = cls
-        else:
-            cls.container.append(cls)
+        if type(container) is dict:
+            container[cls.NAME] = cls
+        elif type(cls.container) is list:
             
+            if hasattr(cls, listIdName):
+                itemId = getattr(cls, listIdName)
+                if itemId >= len(container):
+                    container.extend((itemId - len(container) + 1)*[None])
+                container[itemId] = cls
+            else:
+                container.append(cls)
+    
+    registerToContainer(cls.container)
+    
+    # register to subcontainer
+    if hasattr(cls, 'subcontainer'):
+        registerToContainer(cls.subcontainer, 'SUBID')
+    
     return cls
 
 #==============================================================================

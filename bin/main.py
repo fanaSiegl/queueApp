@@ -117,6 +117,10 @@ qn
 
 submits NASTRAN job to Grid Engine
 
+qn [-h] [-bdf inp_path] [-solver {NASTRAN nas20171}]
+          [-host {mb-so1,mb-so2}] [-prio PRIO] [-start START] [-des DES]
+          [-param PARAM]
+
 optional arguments:
   -h, --help            show this help message and exit
   -bdf inp_path         NASTRAN Input file path.

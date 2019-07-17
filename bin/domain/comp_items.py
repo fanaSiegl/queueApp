@@ -186,6 +186,10 @@ class PamCrashJob(AbaqusJob):
         
         logging.debug('Checking DATACHECK KEY WORD')
         
+        # in case there was no input file specified
+        if self.inpFile is None:
+            return
+        
         isDataCheck = self.inpFile.dataCheck
         if type(parentProfile) is pi.PamCrashDataCheckExecutionProfileType and not isDataCheck:
             logging.debug('profile: DATACHECK, KEY WORD: N/A - adding')
@@ -618,7 +622,7 @@ class Resources(object):
 
 class RunningJob(object):
     
-    COLUMNS_WIDTHS = [6, 10, 12, 55, 4, 21, 25, 7, 6]
+    COLUMNS_WIDTHS = [6, 10, 12, 55, 4, 21, 26, 7, 6]
     OUT_OF_THE_QUEUE_NAME = 'Out of the queue'
     
     ATTRIBUTE_NAMES = [
@@ -631,7 +635,7 @@ class RunningJob(object):
         'scheduling info', 'hard resource_list', 'submission_time', 
         'soft_queue_list', 'usage         1', 'script_file', 'env_list', 
         'account', 'sge_o_path', 'hard_request', 'job_name', 'sge_o_host', 
-        'merge', 'full_job_name', 'JB_name']
+        'merge', 'full_job_name', 'JB_name', 'queue_name_hr']
     
     def __init__(self, attributes):
                 
@@ -701,6 +705,8 @@ class RunningJob(object):
             self._attributes['queue_name'] = self._attributes['soft_req_queue']
         
         self._attributes['priority'] = self._attributes['JAT_prio']
+        self._attributes['queue_name_hr'] = '%s@%s' % (
+            self.licenceServer.NAME, self._attributes['queue_name'].split('@')[-1])
         
         # update tree item attributes when all attributes are obtained
         if self.treeItem is not None:
@@ -784,7 +790,11 @@ class RunningJob(object):
         elif 'JB_submission_time' in self._attributes:
             jobtime = self._attributes['JB_submission_time']
         
-        queueName = self._attributes['queue_name']
+        # this should never happen
+        if 'queue_name_hr' in self._attributes:
+            queueName = self._attributes['queue_name_hr']
+        else:
+            queueName = self._attributes['queue_name']
 #         if queueName is None:
 #             queueName = self._attributes['soft_req_queue']
         

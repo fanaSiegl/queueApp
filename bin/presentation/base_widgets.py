@@ -16,7 +16,7 @@ from PyQt4 import QtCore, QtGui
 
 class SignalGenerator(QtCore.QTimer):
 
-    PERIOD = 20.0 # s
+    PERIOD = 10.0 # s
     updateStatus = QtCore.pyqtSignal()
 
     def __init__(self):
@@ -197,6 +197,11 @@ class ExecutionServerSelectorWidget(BaseSelectorWidget):
         
 #         self.valueChanged()
 
+    #---------------------------------------------------------------------------
+    
+    def setEnabled(self, value):
+        
+        self.listWidget.setEnabled(value)
         
 #=============================================================================
 
@@ -433,7 +438,7 @@ class BaseLineEditWidget(QtGui.QWidget):
         self.setLayout(QtGui.QHBoxLayout())
                 
         self.lineEdit = QtGui.QLineEdit()
-                        
+          
         self.layout().addWidget(QtGui.QLabel(self.LABEL))
         self.layout().addWidget(self.lineEdit)
         
@@ -454,6 +459,7 @@ class BaseLineEditWidget(QtGui.QWidget):
     def setDefaultOption(self, text):
         
         self.lineEdit.setText(text)
+    
 
 #=============================================================================
 
@@ -782,7 +788,7 @@ class FileContentTrackerWidget(QtGui.QTabWidget):
         
         self.mainWindow = mainWindow
         self.parentApplication = mainWindow.parentApplication
-    
+            
     #------------------------------------------------------------------------------ 
     
     def setupContent(self, jobItem, fileName):
@@ -965,7 +971,7 @@ class QueueTreeView(QtGui.QTreeView):
     TAG = 'QueueTreeView'
     DFT_ATTRIBUTES_VISIBILITY = [
         'job_number', 'priority', 'JB_owner', 'JB_name', 'state',
-        'JAT_start_time', 'queue_name', 'hard_request']
+        'JAT_start_time', 'queue_name_hr', 'hard_request']
     
     def __init__(self, parentWidget):
         

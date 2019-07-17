@@ -17,6 +17,7 @@ from persistent import file_items as fi
 #==============================================================================
 
 ABAQUS_EXECUTION_PROFILE_TYPES = list()
+ABAQUS_RESTRICTED_PROFILE_TYPES = dict()
 PAMCRASH_EXECUTION_PROFILE_TYPES = list()
 NASTRAN_EXECUTION_PROFILE_TYPES = list()
 TOSCA_EXECUTION_PROFILE_TYPES = list()
@@ -39,6 +40,12 @@ class BaseExecutionProfileType(object):
         self.postProcessingType = bi.BasePostProcessingType(self.job)
         
         self.inpFileNames = list()
+    
+    #--------------------------------------------------------------------------
+    
+    @classmethod
+    def getLabel(cls):
+        return cls.NAME
     
     #--------------------------------------------------------------------------
     
@@ -380,7 +387,7 @@ class LicensePriorityExecutionProfileType(BaseExecutionProfileType):
     NAME = 'License priority - use any free license (reduce CPU and start on any free server)'
     ID = 4
     
-    DFT_POSTPROCESSING_OPTION_INDEX = 2
+    DFT_POSTPROCESSING_OPTION_INDEX = 3
     
     #--------------------------------------------------------------------------
 
@@ -521,12 +528,45 @@ class ResourcePriority1ExecutionProfileType(BaseExecutionProfileType):
     
     NAME = 'Resource priority 1 - use preferred license, CPU and server'
     ID = 1
+    subcontainer = ABAQUS_RESTRICTED_PROFILE_TYPES
     
     DFT_LICENSE_TYPE = bi.CommercialLicenseServerType
     DFT_NO_OF_CORES = 32
     DFT_EXECUTION_SERVER_INDEX = 3
-    DFT_POSTPROCESSING_OPTION_INDEX = 2
+# TODO: implement types instead of indexes
+    DFT_EXECUTION_SERVER = bi.So3ExecutionServerType
+    DFT_POSTPROCESSING_OPTION_INDEX = 3
     
+    #--------------------------------------------------------------------------
+    
+    @classmethod
+    def getLabel(cls):
+                
+        return '%s (%s, CPU=%s, %s)' % (cls.NAME, cls.DFT_LICENSE_TYPE.NAME, cls.DFT_NO_OF_CORES,
+            cls.DFT_EXECUTION_SERVER.NAME)
+
+    #--------------------------------------------------------------------------
+
+    def _setLicenseServer(self):
+        
+        self.jobSettings.setLicenseServer(self.DFT_LICENSE_TYPE)
+    
+    #--------------------------------------------------------------------------
+
+    def _setExecutionServer(self):
+        
+        licenseServer = self.jobSettings.licenseServer
+        serverHosts = licenseServer.getAPservers()
+        executionServer = serverHosts[self.DFT_EXECUTION_SERVER_INDEX - 1]
+        
+        self.jobSettings.setExecutionServer(executionServer)
+    
+    #--------------------------------------------------------------------------
+
+    def _setNumberOfCores(self):
+        
+        self.job.setNumberOfCores(self.DFT_NO_OF_CORES)
+            
     #--------------------------------------------------------------------------
 
     def getDftLicenseServerOption(self):
@@ -554,9 +594,10 @@ class ResourcePriority1ExecutionProfileType(BaseExecutionProfileType):
     def getDftAdditionalSolverParams(self):
         
         params = ''
-        # check v2019 version
-        if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x'):
-            params = 'threads=4'
+        # check v2019 version and solver compatibility
+        if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x') \
+            and self.jobSettings.executionServer.SOLVER_PARAMS is not None:
+                params = self.jobSettings.executionServer.SOLVER_PARAMS
 
         return params
     
@@ -570,6 +611,7 @@ class ResourcePriority2ExecutionProfileType(ResourcePriority1ExecutionProfileTyp
     DFT_LICENSE_TYPE = bi.Var1LicenseServerType
     DFT_NO_OF_CORES = 12
     DFT_EXECUTION_SERVER_INDEX = 2
+    DFT_EXECUTION_SERVER = bi.So2ExecutionServerType
 
 #==============================================================================
 @utils.registerClass
@@ -580,6 +622,7 @@ class ResourcePriority3ExecutionProfileType(ResourcePriority1ExecutionProfileTyp
     DFT_LICENSE_TYPE = bi.Var2LicenseServerType
     DFT_NO_OF_CORES = 6
     DFT_EXECUTION_SERVER_INDEX = 1
+    DFT_EXECUTION_SERVER = bi.So1ExecutionServerType
     
     #--------------------------------------------------------------------------
     
@@ -593,21 +636,13 @@ class AutoPriority1ExecutionProfileType(ResourcePriority3ExecutionProfileType):
     
     NAME = 'Auto - use preferred profile based on the current availability'
     ID = 0
-    
+
     #--------------------------------------------------------------------------
     
-    def __init__(self, parentApplication):
+    @classmethod
+    def _getAvailableProfileSettings(cls):
         
-        super(AutoPriority1ExecutionProfileType, self).__init__(parentApplication)
-        
-        self.activeProfile = ResourcePriority3ExecutionProfileType
-        self._findAvailableProfileSettings()
-            
-    #--------------------------------------------------------------------------
-    
-    def _findAvailableProfileSettings(self):
-         
-        freeLicenseServer = bi.BaseLicenseServerType.getFree(self.SOLVER_TYPE.NAME)
+        freeLicenseServer = bi.BaseLicenseServerType.getFree(cls.SOLVER_TYPE.NAME)
         serverHosts = freeLicenseServer.getAPservers()
         
         def _checkProfileAvailability(profile):
@@ -630,14 +665,73 @@ class AutoPriority1ExecutionProfileType(ResourcePriority3ExecutionProfileType):
         
         for profile in profiles:
             settings = _checkProfileAvailability(profile)
-            
             if settings is not None:
-                self.DFT_LICENSE_TYPE = settings[0]
-                self.DFT_NO_OF_CORES = settings[1]
-                self.DFT_EXECUTION_SERVER_INDEX = settings[2]
-                
-                self.activeProfile = profile  
-                break
+                return profile, settings
+        
+        return ResourcePriority3ExecutionProfileType, None
+
+    #--------------------------------------------------------------------------
+    
+    @classmethod
+    def getLabel(cls):
+        
+        profile, _ = cls._getAvailableProfileSettings()
+        profileLabel = profile.getLabel()
+        
+        return 'Auto - (%s)' % profileLabel
+        
+    #--------------------------------------------------------------------------
+    
+    def __init__(self, parentApplication):
+        
+        super(AutoPriority1ExecutionProfileType, self).__init__(parentApplication)
+        
+        self.activeProfile = ResourcePriority3ExecutionProfileType
+        self._findAvailableProfileSettings()
+            
+    #--------------------------------------------------------------------------
+    
+    def _findAvailableProfileSettings(self):
+         
+#         freeLicenseServer = bi.BaseLicenseServerType.getFree(self.SOLVER_TYPE.NAME)
+#         serverHosts = freeLicenseServer.getAPservers()
+#         
+#         def _checkProfileAvailability(profile):
+#             
+#             # check available profiles
+#             noOfCoresProfile = profile.DFT_NO_OF_CORES
+#             noOfFreeCoresAtPreferedServerProfile = serverHosts[profile.DFT_EXECUTION_SERVER_INDEX - 1].freeCpuNo
+#             
+#             if (freeLicenseServer == profile.DFT_LICENSE_TYPE and 
+#                  noOfFreeCoresAtPreferedServerProfile >= noOfCoresProfile):
+# 
+#                 return profile.DFT_LICENSE_TYPE, profile.DFT_NO_OF_CORES, profile.DFT_EXECUTION_SERVER_INDEX
+#             else:
+#                 return None
+#         
+#         profiles = [
+#             ResourcePriority1ExecutionProfileType,
+#             ResourcePriority2ExecutionProfileType,
+#             ResourcePriority3ExecutionProfileType]
+#         
+#         for profile in profiles:
+#             settings = _checkProfileAvailability(profile)
+#             
+#             if settings is not None:
+#                 self.DFT_LICENSE_TYPE = settings[0]
+#                 self.DFT_NO_OF_CORES = settings[1]
+#                 self.DFT_EXECUTION_SERVER_INDEX = settings[2]
+#                 
+#                 self.activeProfile = profile
+#                 break
+        
+        profile, settings = self._getAvailableProfileSettings()
+        if settings is not None:
+            self.DFT_LICENSE_TYPE = settings[0]
+            self.DFT_NO_OF_CORES = settings[1]
+            self.DFT_EXECUTION_SERVER_INDEX = settings[2]
+             
+            self.activeProfile = profile
         
         logging.debug('Auto profile setting set to: %s' % profile.NAME)
     
@@ -646,8 +740,13 @@ class AutoPriority1ExecutionProfileType(ResourcePriority3ExecutionProfileType):
     def getDftAdditionalSolverParams(self):
         
         if self.activeProfile is not ResourcePriority3ExecutionProfileType:
-            if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x'):
-                return 'threads=4'
+#             if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x'):
+#                 return 'threads=4'
+            
+            # check v2019 version and solver compatibility
+            if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x') \
+                and self.jobSettings.executionServer.SOLVER_PARAMS is not None:
+                    return self.jobSettings.executionServer.SOLVER_PARAMS
             
         return '' 
         
@@ -661,7 +760,7 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
     NAME = 'PamCrash analysis'
     ID = 0
     
-    DFT_POSTPROCESSING_OPTION_INDEX = 2
+    DFT_POSTPROCESSING_OPTION_INDEX = 3
         
     def __init__(self, parentApplication):
         
@@ -797,6 +896,8 @@ class PamCrashDataCheckExecutionProfileType(PamCrashExecutionProfileType):
 
     DATACHECK_CPU_NO = 1
     DATACHECK_TOKEN_NO = 0
+    
+    DFT_POSTPROCESSING_OPTION_INDEX = 1
         
     #--------------------------------------------------------------------------
 
@@ -1054,8 +1155,9 @@ class AbaqusExecutionProfileSelector(si.BaseDataSelector):
     
     def getOptions(self):
         
-        return [profileType.NAME for profileType in self.profiles]
-    
+#         return [profileType.NAME for profileType in self.profiles]
+        return [profileType.getLabel() for profileType in self.profiles]
+        
     #--------------------------------------------------------------------------
     
     def indexToItem(self, index):

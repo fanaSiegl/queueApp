@@ -116,6 +116,10 @@ class QueueJobTreeItem(QtCore.QObject):
     def updateAttributes(self):
         
         for attrituteName in self.dataItem.getListOfAttributes():
+            # this should never happen
+            if attrituteName not in self.attributeItems:
+                continue
+            
             attrModelItem = self.attributeItems[attrituteName]
             data = self.dataItem.getAttribute(attrituteName)
             if data != attrModelItem.data(QtCore.Qt.DisplayRole):
