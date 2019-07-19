@@ -511,15 +511,15 @@ class Resources(object):
         currentJobIds = [jobAttribute['JB_job_number'] for jobAttribute in jobAttributes]
         
         for job in cls.jobsInQueue.values():
-            if job.id not in currentJobIds:
+            if job.id not in currentJobIds and not job.isOutOfTheQueue:
                 job.setHasFinished(True)
                 cls.jobsInQueue.pop(job.id)
                 hasJustFinishedTags.append(job.jobTag)
                 
-            # gather all existing out of the queue jobs
+            # gather all existing out-of-the queue jobs
             if job.isOutOfTheQueue:
                 outOfTheQueueTags[job.jobTag] = job
-                        
+        
         # check job states
         uniqueJobTags = list()
         for jobAttribute in jobAttributes:
@@ -533,29 +533,40 @@ class Resources(object):
                 
             # add a new job
             else:
-                job = RunningJob(jobAttribute)
-                cls.jobsInQueue[job.id] = job
-                            
+                try:
+                    job = RunningJob(jobAttribute)
+                    cls.jobsInQueue[job.id] = job
+                except bi.LicenseServerException as e:
+                    logging.debug(e)
+                    continue
+                                            
             uniqueJobTags.append(jobTag)
         
-        newOutOfTheQueueTags = list()
+        currentOutOfTheQueueTags = list()
         for jobAttribute in allLicenseTakingJobs: 
             
             jobTag = RunningJob.getTag(jobAttribute)
             
-            # add a new out of the queue job
-            if jobTag not in uniqueJobTags and jobTag not in hasJustFinishedTags:
-                job = RunningJob(jobAttribute)
-                cls.jobsInQueue[job.id] = job
-                newOutOfTheQueueTags.append(job.jobTag)
+            # add a new out-of-the-queue job
+            if jobTag not in uniqueJobTags and jobTag not in outOfTheQueueTags.keys():
+                try:
+                    job = RunningJob(jobAttribute)
+                    cls.jobsInQueue[job.id] = job
+                    currentOutOfTheQueueTags.append(job.jobTag)
+                except bi.LicenseServerException as e:
+                    logging.debug(e)
+                    continue
+            # still running out-of-the-queue job
+            elif jobTag not in uniqueJobTags and jobTag in outOfTheQueueTags.keys():
+                currentOutOfTheQueueTags.append(jobTag)
         
-        # check id out of the queue job has finished
+        # check if out-of-the-queue job has finished
         # maybe there is a better way how to check local running jobs?
         # job will be removed in the next update...
         for job in outOfTheQueueTags.values():
-            if job.jobTag not in newOutOfTheQueueTags:
+            if job.jobTag not in currentOutOfTheQueueTags:
                 job.setHasFinished(True)
-            
+        
     #--------------------------------------------------------------------------
     @classmethod
     def _getTokenStatus(cls):
@@ -656,6 +667,9 @@ class RunningJob(object):
         self.isOutOfTheQueue = False
         if self.name == self.OUT_OF_THE_QUEUE_NAME:
             self.isOutOfTheQueue = True
+            
+#             self._attributes['JB_job_number'] = self.licenceServer.ID*100 + len(self._attributes['JB_owner'])
+#             self.id = self._attributes['JB_job_number']
                 
         self.scratchPath = os.path.join(JobExecutionSetting.SCRATCH_PATH,
             self._attributes['JB_owner'], '%s.%s' % (self.name, self.id))
@@ -689,6 +703,9 @@ class RunningJob(object):
     
     def _setDetailedAttributes(self):
         
+        self._attributes['queue_name_hr'] = '%s@%s' % (
+            self.licenceServer.NAME, self._attributes['queue_name'].split('@')[-1])
+        
         if self.isOutOfTheQueue:
             return
         
@@ -705,9 +722,7 @@ class RunningJob(object):
             self._attributes['queue_name'] = self._attributes['soft_req_queue']
         
         self._attributes['priority'] = self._attributes['JAT_prio']
-        self._attributes['queue_name_hr'] = '%s@%s' % (
-            self.licenceServer.NAME, self._attributes['queue_name'].split('@')[-1])
-        
+                
         # update tree item attributes when all attributes are obtained
         if self.treeItem is not None:
             self.treeItem.updateAttributes()

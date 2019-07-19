@@ -602,6 +602,8 @@ class So2ExecutionServerType(BaseExecutionServerType):
     DESCRIPTION = 'middle performance'
     
     PATTERN = r'.*@(.*-so2)\.cax\.lan'
+    
+    SOLVER_PARAMS = 'threads=4'
 
 #==============================================================================
 @utils.registerClass
