@@ -41,6 +41,10 @@ def saveExecute(method, *args):
                 QtGui.QMessageBox.critical(
                     parentApplication.mainWindow, '%s' % parentApplication.APPLICATION_NAME,
                     str(e))
+            else:
+                QtGui.QMessageBox.critical(
+                    None, '%s' % parentApplication.APPLICATION_NAME,
+                    str(e))
         
         parentApplication.restoreOverrideCursor()
         
@@ -160,10 +164,8 @@ class BaseSubmitWidget(QtGui.QWidget):
         self.parentCentralWidget = parentCentralWidget 
         self.parentApplication = parentCentralWidget.parentApplication
         
-#         self.workDir = '/data/fem/users/siegl/eclipse/qaba/res/test_files/ABAQUS'
         self.workDir = os.getcwd()
         
-#         self.jobs = list()
         self.profile = None
         
         self._setupBaseWidgets()
@@ -178,9 +180,7 @@ class BaseSubmitWidget(QtGui.QWidget):
     #---------------------------------------------------------------------------
     
     def _initiateOptions(self):
-        
-#         self._findInputFiles(self.getWorkDir())
-        
+                
         self.profileSelectorWidget.setupOptions()
         self.licenseServerSelectorWidget.setupOptions()
 #         self.executionServerSelectorWidget.setupOptions()
@@ -204,7 +204,7 @@ class BaseSubmitWidget(QtGui.QWidget):
     
     def setWorkDir(self, path):
         
-        logging.debug('Setting work dir path: "%s"' % path)
+        logging.debug('Setting working directory path to: "%s"' % path)
         
         self.workDir = path
         
