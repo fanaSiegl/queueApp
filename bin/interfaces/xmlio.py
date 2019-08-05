@@ -79,8 +79,12 @@ class GridEngineInterface(object):
 #             if jobState not in jobs:
 #                 jobs[jobState] = list()            
             elemAttributes = dict()
-            for attributeElement in jobElement.getchildren():
-                elemAttributes[attributeElement.tag] = attributeElement.text 
+            for eNo, attributeElement in enumerate(jobElement.getchildren()):
+                if attributeElement.tag in elemAttributes:
+                    attrName = attributeElement.tag + '_%s' % eNo
+                else:
+                    attrName = attributeElement.tag
+                elemAttributes[attrName] = attributeElement.text 
 #             jobs[jobState].append(elemAttributes)
             jobs.append(elemAttributes)
         

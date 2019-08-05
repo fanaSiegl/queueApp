@@ -87,6 +87,7 @@ class ToscaSolverVersions(AbaqusSolverVersions):
 class FileExtensions(object):
     
     ABAQUS_INPUT = '.inp'
+    ABAQUS_RESTART = '.res'
     PAMCRASH_INPUT = '.pc'
     NASTRAN_INPUT = '.bdf'
     TOSCA_INPUT = '.par'

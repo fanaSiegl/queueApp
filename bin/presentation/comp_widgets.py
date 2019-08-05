@@ -243,15 +243,16 @@ class BaseSubmitWidget(QtGui.QWidget):
             newJob = self.profile.job.getCopy()
             newJob.setInpFile(inpFileName, self.profile)
             newJob.setExecutableFile(newJob.EXECUTABLE_FILE_TYPE(self, newJob))
-            newJob.executableFile.save()
-#             self.jobs.append(newJob)
-            
+                        
             # in case of restart read
             if newJob.inpFile.subAllFiles:
+                self.parentApplication.restoreOverrideCursor()
+                
                 restartInpFileName = QtGui.QFileDialog.getOpenFileName(self,
                     'Select restart input file', newJob.inpFile.dirName,
-                     filter = "Input file for analysis: '%s' (*%s)" % (
-                        newJob.inpFile.baseName, ei.FileExtensions.ABAQUS_INPUT))
+                     filter = "*%s file for analysis: '%s' (*%s)" % (
+                        ei.FileExtensions.ABAQUS_RESTART, newJob.inpFile.baseName,
+                        ei.FileExtensions.ABAQUS_RESTART))
                  
                 if not restartInpFileName:
                     raise si.DataSelectorException('No restart file selected!')
@@ -265,8 +266,10 @@ class BaseSubmitWidget(QtGui.QWidget):
                     message += '\n%s: %s' % (baseName, status)
                 
                 self.parentApplication.showInfoMessage(message)                
+            
+            newJob.executableFile.save()
                 
-            message += 'Submitting job: %s\n' % newJob.inpFile.baseName
+            message = 'Submitting job: %s\n' % newJob.inpFile.baseName
             
             logging.debug(message)
             logging.debug(newJob.executableFile.getContent())

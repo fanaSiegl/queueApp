@@ -365,9 +365,11 @@ class AbaqusJobExecutableFile(object):
     def _getDescriptionContent(self):
         
         content = '#!/bin/bash\n'
-        content += '#$ -hard -l %s\n' % self._getJobFeatures()
+#         content += '#$ -hard -l %s\n' % self._getJobFeatures()
+        content += '#$ -hard -l %s' % self._getJobFeatures()
+        content += ' -l excl=true -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)        
         content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
-        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
+#         content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
         content += '#$ -cwd \n'
         content += '#$ -j y\n'
         content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
@@ -381,6 +383,9 @@ class AbaqusJobExecutableFile(object):
         if len(self.user.email) > 0:
             content += '#$ -M %s\n' % self.user.email
             content += '#$ -m beas\n'
+        
+        if self.parentJob.inpFile.subAllFiles:
+            content += '#$ -v jobname_old=%s\n' % self.parentJob.restartInpFile.baseName
         
         content += 'umask 0002\n'
         
@@ -470,9 +475,10 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
     def _getDescriptionContent(self):
         
         content = '#!/bin/bash\n'
-        content += '#$ -hard -l %s\n' % self._getJobFeatures()
+        content += '#$ -hard -l %s' % self._getJobFeatures()
+        content += ' -l excl=true -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
         content += '#$ -q %s@*\n' % self.jobSettings.licenseServer.CODE
-        content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
+#         content += '#$ -soft -q %s%s\n' % (self.jobSettings.licenseServer.CODE, self.jobSettings.executionServer.fullName)
         content += '#$ -cwd -V\n'
         content += '#$ -j y\n'
         content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
@@ -482,7 +488,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         if len(self.user.email) > 0:
             content += '#$ -M %s\n' % self.user.email
             content += '#$ -m beas\n'
-                
+                            
         content += 'scratch_dir=%s/%s/$JOB_NAME.$JOB_ID\n' % (
             self.jobSettings.SCRATCH_PATH, self.user.name)
         content += 'cd $scratch_dir\n'

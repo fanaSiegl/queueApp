@@ -651,7 +651,7 @@ class RunningJob(object):
     def __init__(self, attributes):
                 
         self._attributes = attributes
-                
+        
         self.id = self._attributes['JB_job_number']
         self.name = self._attributes['JB_name']
         self.jobTag = self.getTag(attributes)
@@ -667,10 +667,7 @@ class RunningJob(object):
         self.isOutOfTheQueue = False
         if self.name == self.OUT_OF_THE_QUEUE_NAME:
             self.isOutOfTheQueue = True
-            
-#             self._attributes['JB_job_number'] = self.licenceServer.ID*100 + len(self._attributes['JB_owner'])
-#             self.id = self._attributes['JB_job_number']
-                
+                            
         self.scratchPath = os.path.join(JobExecutionSetting.SCRATCH_PATH,
             self._attributes['JB_owner'], '%s.%s' % (self.name, self.id))
         
@@ -703,6 +700,13 @@ class RunningJob(object):
     
     def _setDetailedAttributes(self):
         
+        # prevent None in queue_name
+        queueName = self._attributes['queue_name']
+        if queueName is None and 'soft_req_queue' in self._attributes:
+            self._attributes['queue_name'] = self._attributes['soft_req_queue']
+        elif queueName is None:
+            self._attributes['queue_name'] = self._attributes['hard_req_queue']
+            
         self._attributes['queue_name_hr'] = '%s@%s' % (
             self.licenceServer.NAME, self._attributes['queue_name'].split('@')[-1])
         
@@ -715,12 +719,7 @@ class RunningJob(object):
         for line in lines[1:]:
             parts = line.split(':')
             self._attributes[parts[0]] = ', '.join([p.strip() for p in parts[1:]])
-            
-        # prevent None in queue_name
-        queueName = self._attributes['queue_name']
-        if queueName is None:
-            self._attributes['queue_name'] = self._attributes['soft_req_queue']
-        
+                    
         self._attributes['priority'] = self._attributes['JAT_prio']
                 
         # update tree item attributes when all attributes are obtained
