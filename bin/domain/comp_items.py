@@ -659,7 +659,16 @@ class RunningJob(object):
         self.licenceServer = bi.BaseLicenseServerType.getLicenseServerTypeFromName(
             self._attributes['hard_req_queue'])
         
-        self.noOfTokens = int(self._attributes['hard_request'])
+        noOfTokens = 0
+        for key in self._attributes:
+            if 'hard_request' in key:
+                try:
+                    noOfTokens = int(self._attributes['hard_request'])
+                    break
+                except Exception:
+                    continue
+        
+        self.noOfTokens = noOfTokens#int(self._attributes['hard_request'])
         self.noOfCpus = self.licenceServer.getNoOfCpus(self.noOfTokens)
         
         self.treeItem = None
@@ -706,6 +715,14 @@ class RunningJob(object):
             self._attributes['queue_name'] = self._attributes['soft_req_queue']
         elif queueName is None:
             self._attributes['queue_name'] = self._attributes['hard_req_queue']
+            
+            # try to replace missing host
+            if '*' in self._attributes['hard_req_queue']:
+                for key, value in self._attributes.iteritems():
+                    if 'hard_request' in key and '.lan' in value:
+                        self._attributes['queue_name'] = self._attributes['hard_req_queue'].replace(
+                            '*', value)
+                        break                
             
         self._attributes['queue_name_hr'] = '%s@%s' % (
             self.licenceServer.NAME, self._attributes['queue_name'].split('@')[-1])
