@@ -652,13 +652,13 @@ class BasePostProcessingType(object):
     container = POST_PROCESSING_TYPES
     NAME = ''
     
-    def __init__(self, parentJob):
-        
-        self.parentJob = parentJob
+#     def __init__(self, parentJob):
+#         
+#         self.parentJob = parentJob
     
     #--------------------------------------------------------------------------
-    
-    def getContent(self):
+    @classmethod
+    def getContent(cls, parentJob):
         
         return ''
 
@@ -677,8 +677,8 @@ class MetaConversionPostProcessingType(BasePostProcessingType):
     ID = 1
     
     #--------------------------------------------------------------------------
-    
-    def getContent(self):
+    @classmethod
+    def getContent(cls, parentJob):
         
         template = Template('''
 # postprocessing - conversion to metadb
@@ -693,7 +693,7 @@ fi
 ''')
 
         return template.safe_substitute(
-            {'jobname' : self.parentJob.inpFile.baseName,
+            {'jobname' : parentJob.inpFile.baseName,
              'meta_executable' : ei.META_EXECUTABLE})
 
 # #==============================================================================
@@ -712,8 +712,8 @@ class BaseMetaPostProcessingType(BasePostProcessingType):
     metaSessionPath = ''
                 
     #--------------------------------------------------------------------------
-    
-    def getContent(self):
+    @classmethod
+    def getContent(cls, parentJob):
         
         template = Template('''
 # postprocessing - META
@@ -729,7 +729,7 @@ fi
 ''')
 
         return template.safe_substitute(
-            {'jobname' : self.parentJob.inpFile.baseName,
+            {'jobname' : parentJob.inpFile.baseName,
              'meta_executable' : ei.META_EXECUTABLE,
-             'meta_session_name' : self.metaSessionPath})
+             'meta_session_name' : cls.metaSessionPath})
 

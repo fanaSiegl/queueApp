@@ -37,7 +37,7 @@ class BaseExecutionProfileType(object):
         self.job = ci.AbaqusJob()
         self.jobSettings = ci.JobExecutionSetting()
         self.user = ci.User()
-        self.postProcessingType = bi.BasePostProcessingType(self.job)
+        self.postProcessingType = bi.BasePostProcessingType#(self.job)
         
         self.inpFileNames = list()
     
@@ -229,7 +229,7 @@ class BaseExecutionProfileType(object):
         selector.DFT_OPTION_INDEX = self.DFT_POSTPROCESSING_OPTION_INDEX
         postProcessingType = selector.getSelection()
         
-        self.postProcessingType = postProcessingType(self.job)
+        self.postProcessingType = postProcessingType#(self.job)
         
     #--------------------------------------------------------------------------
     
@@ -768,7 +768,7 @@ class PamCrashExecutionProfileType(BaseExecutionProfileType):
         self.job = ci.PamCrashJob()
         self.jobSettings = ci.JobExecutionSetting()
         self.user = ci.User()
-        self.postProcessingType = bi.BasePostProcessingType(self.job)
+        self.postProcessingType = bi.BasePostProcessingType#(self.job)
         
         self.inpFileNames = list()
         
@@ -968,7 +968,7 @@ class NastranExecutionProfileType(BaseExecutionProfileType):
         self.job = ci.NastranJob()
         self.jobSettings = ci.JobExecutionSetting()
         self.user = ci.User()
-        self.postProcessingType = bi.BasePostProcessingType(self.job)
+        self.postProcessingType = bi.BasePostProcessingType#(self.job)
         
         self.inpFileNames = list()
     
@@ -1076,7 +1076,7 @@ class ToscaExecutionProfileType(BaseExecutionProfileType):
         self.job = ci.ToscaJob()
         self.jobSettings = ci.JobExecutionSetting()
         self.user = ci.User()
-        self.postProcessingType = bi.BasePostProcessingType(self.job)
+        self.postProcessingType = bi.BasePostProcessingType#(self.job)
         
         self.inpFileNames = list()
             

@@ -312,7 +312,7 @@ class AbaqusJobExecutableFile(object):
         content += 'echo "%s finished with the status:" $?\n\n' % self.parentProfile.SOLVER_TYPE.NAME
         content += '# now sleep until lock file disappears\n'
         content += 'sleep 30 && while [ -f %s.lck ]; do sleep 5; done\n' % self.parentJob.inpFile.baseName
-        content += self.postProcessingType.getContent()
+        content += self.postProcessingType.getContent(self.parentJob)
         
         return content
     
@@ -444,7 +444,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         content += 'echo "%s finished with the status:" $?\n\n' % self.parentProfile.SOLVER_TYPE.NAME
         content += '# now sleep\n'
         content += 'sleep 10\n'
-        content += self.postProcessingType.getContent()
+        content += self.postProcessingType.getContent(self.parentJob)
         
         return content
     

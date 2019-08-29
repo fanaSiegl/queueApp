@@ -269,7 +269,7 @@ class BaseSubmitWidget(QtGui.QWidget):
             
             newJob.executableFile.save()
                 
-            message = 'Submitting job: %s\n' % newJob.inpFile.baseName
+            message += 'Submitting job: %s\n' % newJob.inpFile.baseName
             
             logging.debug(message)
             logging.debug(newJob.executableFile.getContent())
@@ -470,7 +470,7 @@ class BaseSubmitWidget(QtGui.QWidget):
         
         logging.debug('Setting post-processing to: %s' % postProcessingType.NAME)
                 
-        self.profile.postProcessingType = postProcessingType(self.profile.job)
+        self.profile.postProcessingType = postProcessingType#(self.profile.job)
         
 #===============================================================================
 @utils.registerClass
