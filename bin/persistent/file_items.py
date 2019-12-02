@@ -65,8 +65,14 @@ class AbaqusInpFile(object):
             line = line.upper()
             if line.startswith('*INCLUDE'):
                 parts = rawLine.split()
-                includePart = parts[-1].strip()
-                includeFile = includePart.split('=')[-1]
+                includeParts = parts[-1].strip()
+                includePart = includeParts.split('=')
+                keyPart = includePart[0].strip()
+                
+                # skip encripted includes
+                if keyPart.upper() == 'PASSWORD':
+                    continue
+                includeFile = includePart[-1]
                 
                 self.includeFiles.append(includeFile)            
             elif line.startswith('*STEP'):

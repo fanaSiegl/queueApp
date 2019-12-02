@@ -9,7 +9,9 @@ import sys
 #==============================================================================
 
 ALLOWED_PROJECT_PATHS = [
-    '/data/fem', '/data/sk_1', '/data/sk_2', '/data/sk_3', '/data/vwg', '/data/bmw', '/data/fgs', '/data/simulia', '/data/ostatni', '/data/ostatni_2']
+    '/data/fem', '/data/sk_1', '/data/sk_2', '/data/sk_3', '/data/vwg',
+    '/data/bmw', '/data/fgs', '/data/simulia', '/data/ostatni',
+    '/data/ostatni_2', '/data/bmw-br']
 
 META_POST_PROCESSING_PATH = '/data/fem/+software/SKRIPTY/tools/python/metaTools/SESSION'
 META_EXECUTABLE = '/usr1/applications/ansa/BETA_CAE_Systems/meta_post_v19.1.1/meta_post64.sh'
