@@ -31,19 +31,21 @@ Usage
 qq
 --
 
-graphical interface providing the complete tool functionality.
+graphical interface providing the complete tool functionality:
+
+    qq
+
+Queue monitor:
 
 .. image:: images/qq_01.png
     :width: 600pt
     :align: center
 
-Queue monitor
+Submitting tools:
 
 .. image:: images/qq_02.png
     :width: 600pt
     :align: center
-
-Submitting tools
 
 q
 --
@@ -52,9 +54,9 @@ q
     :width: 600pt
     :align: center
 
-text based overview of Grid Engine jobs statuses
+text based overview of Grid Engine jobs statuses::
 
-q
+    q
 
 qa
 --
