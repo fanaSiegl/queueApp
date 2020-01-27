@@ -384,7 +384,7 @@ class AbaqusJobExecutableFile(object):
         content += '#$ -v sub_allfiles=%s\n' % int(self.parentJob.inpFile.subAllFiles)
         content += '#$ -v ret_allfiles=%s\n' % int(self.parentJob.inpFile.retAllFiles)
         content += '#$ -ac verze=%s\n' % self.parentJob.solverVersion
-        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
+        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description.replace(' ', '_')
         content += '#$ -a %s\n' % self.parentJob.startTime
         if len(self.user.email) > 0:
             content += '#$ -M %s\n' % self.user.email
@@ -489,7 +489,7 @@ class PamCrashJobExecutableFile(AbaqusJobExecutableFile):
         content += '#$ -j y\n'
         content += '#$ -N %s\n' % self.parentJob.inpFile.baseName
         content += '#$ -p %s\n' % self.parentJob.priority
-        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description
+        content += '#$ -ac popis_ulohy=%s\n' % self.parentJob.description.replace(' ', '_')
         content += '#$ -a %s\n' % self.parentJob.startTime
         if len(self.user.email) > 0:
             content += '#$ -M %s\n' % self.user.email

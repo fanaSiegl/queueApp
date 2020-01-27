@@ -319,7 +319,13 @@ class InputFileSelectorWidget(QtGui.QWidget):
     
     def valueChanged(self):
         
-        self.changed.emit(self.getSelection())
+        selectedFilesNames = list()
+        for selectedItem in self.getSelection():
+            if os.path.isfile(selectedItem):
+                selectedFilesNames.append(selectedItem)
+        
+#         if len(selectedFilesNames) > 0:
+        self.changed.emit(selectedFilesNames)
     
     #--------------------------------------------------------------------------
 
@@ -914,10 +920,10 @@ class InputFilesTreeView(QtGui.QTreeView):
         self.fileSystemModel.setNameFilters(QtCore.QStringList('*' + self.selectorItem.FILE_EXT))
         self.fileSystemModel.setNameFilterDisables(False)
         
-        self.fileSystemModel.setFilter(QtCore.QDir.NoDotAndDotDot | QtCore.QDir.Files )
+#         self.fileSystemModel.setFilter(QtCore.QDir.NoDotAndDotDot | QtCore.QDir.Files )
         
         self.setModel(self.fileSystemModel)
-        self.setRootIsDecorated(False)
+#         self.setRootIsDecorated(False)
         
         self.expandAll()
         self.setSortingEnabled(True)

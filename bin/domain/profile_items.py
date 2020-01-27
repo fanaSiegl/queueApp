@@ -282,8 +282,12 @@ class BaseExecutionProfileType(object):
     #--------------------------------------------------------------------------
     
     def getDftPostProcessingOption(self):
-        
-        return self.DFT_POSTPROCESSING_OPTION_INDEX
+                
+        # no post-processing for ABAQUS modal analysis
+        if self.job.inpFile is not None and type(self.job.inpFile) is fi.AbaqusInpFile and self.job.inpFile.eigSolver is not None:
+            return 1
+        else:                    
+            return self.DFT_POSTPROCESSING_OPTION_INDEX
         
 #==============================================================================
 @utils.registerClass
@@ -597,7 +601,12 @@ class ResourcePriority1ExecutionProfileType(BaseExecutionProfileType):
         # check v2019 version and solver compatibility
         if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x') \
             and self.jobSettings.executionServer.SOLVER_PARAMS is not None:
-                params = self.jobSettings.executionServer.SOLVER_PARAMS
+                
+                # skip if it is modal analysis
+                if self.job.inpFile is not None and self.job.inpFile.eigSolver is not None:
+                    params = ''
+                else:
+                    params = self.jobSettings.executionServer.SOLVER_PARAMS
 
         return params
     
@@ -740,12 +749,15 @@ class AutoPriority1ExecutionProfileType(ResourcePriority3ExecutionProfileType):
     def getDftAdditionalSolverParams(self):
         
         if self.activeProfile is not ResourcePriority3ExecutionProfileType:
-#             if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x'):
-#                 return 'threads=4'
             
             # check v2019 version and solver compatibility
             if self.job.solverVersion == ei.AbaqusSolverVersions.getSolverPath('abaqus2019x') \
                 and self.jobSettings.executionServer.SOLVER_PARAMS is not None:
+                
+                # skip if it is modal analysis
+                if self.job.inpFile is not None and self.job.inpFile.eigSolver is not None:
+                    return ''
+                else:
                     return self.jobSettings.executionServer.SOLVER_PARAMS
             
         return '' 

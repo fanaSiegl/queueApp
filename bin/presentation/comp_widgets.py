@@ -62,6 +62,8 @@ class CentralWidget(QtGui.QWidget):
         
         self._setupWidgets()
         self._setupConnections()
+        
+        self.setMinimumWidth(800)
             
     #--------------------------------------------------------------------------
 
@@ -103,17 +105,9 @@ class QueueWidget(QtGui.QWidget):
         self.layout = QtGui.QVBoxLayout()
         self.setLayout(self.layout)
                 
-#         labels = QtGui.QLabel(self.queue.getColumnLabels())
-#         font = QtGui.QFont()
-#         font.setFamily("Courier New")
-#         labels.setFont(font)             
-#         self.layout.addWidget(labels)
-        
-#         self.queueListWidget = bw.QueueListWidget(self)
         self.queueTreeView = bw.QueueTreeView(self)
         self.queueTreeView.setModel(models.BaseTreeModel())
         
-#         self.layout.addWidget(self.queueListWidget)
         self.layout.addWidget(self.queueTreeView)
                             
     #--------------------------------------------------------------------------
@@ -128,16 +122,7 @@ class QueueWidget(QtGui.QWidget):
                 self.queueTreeView.model().appendRow(jobTreeItem.getRow())
                 
                 jobTreeItem.hasFinished.connect(self._removeFinishedJob)
-                
-            
-#         # remove finished jobs
-#         for rowId in range(self.queueTreeView.model().rowCount())[::-1]:
-#             itemIndex = self.queueTreeView.model().index(rowId, 0)
-#             item = self.queueTreeView.model().itemFromIndex(itemIndex)
-#             
-#             if item.dataItem.hasFinished:
-#                 self.queueTreeView.model().removeRows(itemIndex.row(), 1)
-            
+                            
         self.queueTreeView.updateViewHeader()
     
     #--------------------------------------------------------------------------
@@ -354,7 +339,7 @@ class BaseSubmitWidget(QtGui.QWidget):
     #--------------------------------------------------------------------------
     @saveExecute
     def _setupInputFiles(self, inputFiles):
-        
+                
         self.profile.inpFileNames = inputFiles
         
         if len(inputFiles) > 0:
@@ -362,6 +347,12 @@ class BaseSubmitWidget(QtGui.QWidget):
                             
             # check analysis type
             self.noOfGpusSelectorWidget.setDefaultOption(*self.profile.getDftNoOfGpus())
+            
+            self.solverParametersSelectorWidget.setDefaultOption(
+                self.profile.getDftAdditionalSolverParams())
+            self.postProcessingSelectorWidget.setDefaultOption(
+                self.profile.getDftPostProcessingOption())
+            
         else:
             self.noOfGpusSelectorWidget.setDefaultOption(0, 0, 0)
         

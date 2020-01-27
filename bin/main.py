@@ -31,7 +31,7 @@ Usage
 qq
 --
 
-graphical interface providing the complete tool functionality:
+graphical interface providing the complete tool functionality::
 
     qq
 
@@ -169,7 +169,7 @@ from presentation import base_widgets as bw
 
 #==============================================================================
 
-DEBUG = 0
+DEBUG = 1
 
 #==============================================================================
 
@@ -311,7 +311,7 @@ class MainWindow(QtGui.QMainWindow):
                 self.parentApplication.userName, self.parentApplication.machine)))
         
         self.setCentralWidget(cw.CentralWidget(self))
-        
+                
         # add docks
         self.runningJobFileListWidget = bw.RunningJobFileListWidget(self)
         self.runningJobFileListDock = bw.createDock(self, 'Job file list', self.runningJobFileListWidget)

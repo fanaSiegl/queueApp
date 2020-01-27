@@ -851,7 +851,11 @@ class RunningJob(object):
         
         logging.debug('Terminating job: %s' % self.id)
         
-        stdout, _ = utils.runSubprocess('qdel %s' % self.id)
+        if self._attributes['state'] == 'dr':
+            stdout, _ = utils.runSubprocess('qdel -f %s' % self.id)
+        else:
+            stdout, _ = utils.runSubprocess('qdel %s' % self.id)
+        
         return stdout
     
     #--------------------------------------------------------------------------

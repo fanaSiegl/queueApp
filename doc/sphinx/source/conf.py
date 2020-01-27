@@ -12,7 +12,11 @@
 # serve to show the default.
 
 import sys, os
-import ConfigParser
+
+try:
+    import ConfigParser
+except ImportError as e:
+    import configparser as ConfigParser 
 
 #==============================================================================
 
