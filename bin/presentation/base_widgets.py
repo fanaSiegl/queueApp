@@ -930,7 +930,7 @@ class InputFilesTreeView(QtGui.QTreeView):
         self.sortByColumn(0, QtCore.Qt.AscendingOrder)
 #         self.view.resizeColumnToContents(0)
         self.setColumnWidth(0, 400)
-        
+                      
     #--------------------------------------------------------------------------
 
     def getSelectedItems(self):
@@ -944,25 +944,18 @@ class InputFilesTreeView(QtGui.QTreeView):
             selectedItems.append(str(path))
          
         return selectedItems
-     
-    #--------------------------------------------------------------------------
-    
-    def mouseReleaseEvent(self, event):
-        
-        super(InputFilesTreeView, self).mouseReleaseEvent(event)
-        
-        self.itemSelected(self.currentIndex())
-    
+         
     #--------------------------------------------------------------------------
 
-    def itemSelected(self, index):
+    def selectionChanged(self, selected, deselected):
         
+        super(InputFilesTreeView, self).selectionChanged(selected, deselected)
+                        
         selectedItems = list()
-        for index in self.selectedIndexes():
-            path = index.model().filePath(index)
-            
+        for index in selected.indexes():
             if index.column() > 0:
                 continue
+            path = index.model().filePath(index)
             selectedItems.append(str(path))
         
         self.itemSelectionChanged.emit(selectedItems)
