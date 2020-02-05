@@ -222,8 +222,9 @@ class QueueApplication(QtGui.QApplication):
         self.mainWindow.runningJobFileListWidget.itemForTrackingSelected.connect(
             self._setupFileTracking)
         
-        self.mainWindow.licenseSettingAction.triggered.connect(self.setLicenseRestriction)
-        self.mainWindow.exitAction.triggered.connect(self.closeAllWindows)
+        if self.checkAuthority():
+            self.mainWindow.licenseSettingAction.triggered.connect(self.setLicenseRestriction)
+            self.mainWindow.exitAction.triggered.connect(self.closeAllWindows)
     
     #---------------------------------------------------------------------------
 
