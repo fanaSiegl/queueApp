@@ -189,6 +189,33 @@ class BaseDataSelector(object):
             print '\tPlease select a number between %s and %s' % (minValue, maxValue)
             
             return cls.getIntInput(description, prompt, minValue, maxValue, dftValue)
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def getBooleanInput(cls, description, prompt, dftValue=False):
+        
+        # show message
+        cls.printSelectionTitle(description)
+                                
+        value = raw_input(prompt)
+        
+        if len(value.strip()) == 0:
+            return dftValue
+        
+        
+        try:
+            if value.strip() == 'yes':
+                return True
+            elif value.strip() == 'no':
+                return False
+            else:
+                raise DataSelectorException('Value not valid!')
+        
+        except Exception as e:
+            print '\tNot valid value: %s' % value
+            print '\tPlease enter either "yes" or "no".'
+            
+            return cls.getBooleanInput(description, prompt, dftValue)
         
         
 #==============================================================================
@@ -221,21 +248,14 @@ class LicenseServerSelector(BaseDataSelector):
     def getSelection(self):
         
         options = self.getOptions()
-#         licenseServerList = self.getOptions()
-#         
-#         options = list()
-#         for licenseServer in licenseServerList:
-#             status = licenseServer.getTokenStatus()
-#             options.append('%s %s license (free tokens: %s/%s)' % (
-#                 licenseServer.LICENSE_TYPE.NAME, licenseServer.NAME, status['free'], status['total']))
                         
         # print list of servers
         index = self._getOptionFromList(
             self.DESCRIPTION,
             "Enter the number which represent ABAQUS queue [enter=%s]: " % self.DFT_OPTION_INDEX,
             options)
-        
-        return self.indexToItem(index)
+                
+        return self.indexToItem(index) 
     
 #==============================================================================
 

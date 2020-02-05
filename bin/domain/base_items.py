@@ -14,6 +14,7 @@ from string import Template
 
 import utils
 import enum_items as ei
+from time import mktime
 # from interfaces import xmlio
 
 #==============================================================================
@@ -25,6 +26,8 @@ PAMCRASH_LICENSE_SERVER_TYPES = list()
 NASTRAN_LICENSE_SERVER_TYPES = list()
 SOLVER_TYPES = dict()
 POST_PROCESSING_TYPES = list()
+
+LICENSE_RESTRICTION_TYPES = dict()
 
 #==============================================================================
 
@@ -168,7 +171,148 @@ class NastranLicenseType(BaseLicenseType):
               1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
               1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
               1, 1]
+
+#==============================================================================
+
+class BaseLicenseRestrictionType(object):
+    
+    container = LICENSE_RESTRICTION_TYPES
+    instances = list()
+    
+    NAME = ''
+    CONFIG_PATTERN = ''
+    
+    #-------------------------------------------------------------------------
+    
+    def __init__(self, licenseServerTypeName, settings):
         
+        self.licenseServerTypeName = licenseServerTypeName
+        self.settings = settings
+        
+        # register instance
+#         BaseLicenseRestrictionType.instances.append(self)
+        self.register(self)
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def register(cls, instance):
+        
+        names = [i.licenseServerTypeName for i in cls.instances]
+        if instance.licenseServerTypeName not in names:
+            cls.instances.append(instance)
+    
+    #-------------------------------------------------------------------------
+    
+    def isActivated(self):
+        
+        return False
+        
+    #-------------------------------------------------------------------------
+    @classmethod
+    def getFromConfig(cls, licenseServerTypeName, settings):
+        
+        for restrictionType in LICENSE_RESTRICTION_TYPES.values():
+            pattern = re.compile(restrictionType.CONFIG_PATTERN)
+            match = re.match(pattern, settings)
+            if match:
+                return restrictionType.createFromConfig(licenseServerTypeName, settings)
+            
+        raise LicenseServerException(
+            'License restriction not identified from configuration: "%s"!' % settings)
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def createFromConfig(cls, licenseServerTypeName, settings):
+        return cls(licenseServerTypeName, settings)
+    
+    #-------------------------------------------------------------------------
+    
+    def getMessage(self):
+        return ''
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def getOverviewMessage(cls):
+                
+        message = ''
+        for restriction in cls.instances:
+            if restriction.isActivated():
+                message += 'License %s - %s\n' % (
+                    restriction.licenseServerTypeName, restriction.getMessage())
+        
+        return message
+    
+    #-------------------------------------------------------------------------
+    
+#     def getConfig(self):
+#         
+#         return self.NAME
+
+#==============================================================================
+@utils.registerClass
+class NoLicenseRestrictionType(BaseLicenseRestrictionType):
+        
+    NAME = 'No restriction'
+    CONFIG_PATTERN = 'No restriction'
+    
+#==============================================================================
+@utils.registerClass
+class LicenseTimeRestrictionType(BaseLicenseRestrictionType):
+        
+    NAME = 'Time restriction'
+    TIME_FORMAT = '%d/%m/%Y_%H:%M'
+    CONFIG_PATTERN = '''Time restriction\(start\s?=\s?['"]{1}(\d{2}/\d{2}/\d{4}_\d{2}:\d{2})['"]{1}\s?,\s?end\s?=\s?['"]{1}(\d{2}/\d{2}/\d{4}_\d{2}:\d{2})['"]{1}\s?,\s?message\s?=\s?['"]{1}(.*)['"]{1}\)'''
+#     '''Time restriction\(start\s?=\s?['"]{1}(\d{2}/\d{2}/\d{4}_\d{2}:\d{2})['"]{1}\s?,\s?end\s?=\s?['"]{1}(\d{2}/\d{2}/\d{4}_\d{2}:\d{2})['"]{1}\s?\)'''
+    
+    #-------------------------------------------------------------------------
+    
+    def __init__(self, licenseServerTypeName, start='01/01/2020_00:00', end='31/12/2099_23:59', message='License reserved until: 31/12/2099_23:59'):
+        
+        self.licenseServerTypeName = licenseServerTypeName
+        self.startTime = time.strptime(start, self.TIME_FORMAT)
+        self.endTime = time.strptime(end, self.TIME_FORMAT)
+        self.message = message
+        
+        # register instance
+#         LicenseTimeRestrictionType.instances.append(self)
+        self.register(self)
+    
+    #-------------------------------------------------------------------------
+    
+    def isActivated(self):
+        
+        if time.mktime(self.startTime) <= time.time() <= time.mktime(self.endTime):
+            return True
+        else:
+            return False
+        
+    #-------------------------------------------------------------------------
+    @classmethod
+    def createFromConfig(cls, licenseServerTypeName, settings):
+        
+        pattern = re.compile(cls.CONFIG_PATTERN)
+        match = re.match(pattern, settings)
+        if match:
+            return cls(licenseServerTypeName, match.group(1), match.group(2), match.group(3))
+        
+        raise LicenseServerException(
+            'Failed to initialise license restriction from configuration: "%s"!' % settings)
+    
+    #-------------------------------------------------------------------------
+    
+    def getMessage(self):
+        return self.message
+    
+    #-------------------------------------------------------------------------
+    
+#     def getConfig(self):
+#         
+#         startTime = time.strftime(self.startTime, self.TIME_FORMAT)
+#         endTime = time.strftime(self.endTime, self.TIME_FORMAT)
+#         
+#         return self.NAME + "(start='%s', end='%s', message='%s')" % (
+#             startTime, endTime, self.message)
+            
 #==============================================================================
 
 class BaseLicenseServerType(object):
@@ -178,7 +322,18 @@ class BaseLicenseServerType(object):
     LICENSE_TYPE = DslsLicenseType
     
     resources = None
+    restriction = NoLicenseRestrictionType
     
+    #-------------------------------------------------------------------------
+    @classmethod
+    def setRestriction(cls, restrictionInstance):
+        cls.restriction = restrictionInstance
+    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def isRestricted(cls):
+        return cls.restriction.isActivated()
+            
     #-------------------------------------------------------------------------
     @classmethod
     def toOptionLine(cls):
@@ -285,7 +440,7 @@ class BaseLicenseServerType(object):
     
     #--------------------------------------------------------------------------
     @classmethod
-    def getLicenseServerTypeFromName(cls, licenseServerQueueCode):
+    def getLicenseServerTypeFromCode(cls, licenseServerQueueCode):
         
         ''' licenseServerQueueCode = abaqus1@* '''
         
@@ -295,7 +450,18 @@ class BaseLicenseServerType(object):
         
         raise LicenseServerException(
             'Unknown license server pattern: %s' % licenseServerQueueCode)
+    
+    #--------------------------------------------------------------------------
+    @classmethod
+    def getLicenseServerTypeFromName(cls, licenseServerName):
+                
+        for licenseServer in LICENSE_SERVER_TYPES:
+            if licenseServer.NAME in licenseServerName:
+                return licenseServer
         
+        raise LicenseServerException(
+            'Unknown license server pattern: %s' % licenseServerName)
+    
     #--------------------------------------------------------------------------
 #     @classmethod
 #     def getUserTokenStatus(cls, userName, hostName):

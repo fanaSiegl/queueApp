@@ -223,6 +223,20 @@ class BaseSubmitWidget(QtGui.QWidget):
         if len(self.profile.inpFileNames) == 0:
             raise si.DataSelectorException('No files selected!')
         
+        # check license restriction
+        licenseServer = self.profile.jobSettings.licenseServer 
+        if licenseServer.restriction.isActivated():
+            message = licenseServer.restriction.getOverviewMessage() + '\nDo you want to ignore restrictions and submit the job anyway?'
+            
+            self.parentApplication.restoreOverrideCursor()
+            
+            reply = QtGui.QMessageBox.question(self.parentApplication.mainWindow, 'License restriction', 
+                message, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.No:
+                return
+            
+            self.parentApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        
         message = ''
         for inpFileName in self.profile.inpFileNames:
             newJob = self.profile.job.getCopy()

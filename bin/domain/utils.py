@@ -23,6 +23,7 @@ PATH_RES = os.path.normpath(os.path.join(PATH_BIN,'..', 'res'))
 PATH_ICONS = os.path.join(PATH_RES, 'icons')
 
 VERSION_FILE = 'version.ini'
+CONFIG_FILE = 'config.ini'
 LOG_FILE = 'queueApp.log'
 
 #==============================================================================
@@ -42,6 +43,41 @@ def getVersionInfo():
  
     return revision, modifiedBy, lastModified
 
+#=============================================================================
+
+def getRestrictionConfig():
+
+    SECTION_LINCENSE_RESTRICTIONS = 'LINCENSE_RESTRICTIONS'
+     
+    config = ConfigParser.ConfigParser()
+     
+    cfgFileName = os.path.join(PATH_INI, CONFIG_FILE)
+    config.read(cfgFileName)    
+    
+    settings = dict()
+    for k, v in config.items(SECTION_LINCENSE_RESTRICTIONS):
+        settings[k.upper()] = v
+    
+    return settings
+
+#=============================================================================
+
+def setRestrictionConfig(settings):
+        
+    SECTION_LINCENSE_RESTRICTIONS = 'LINCENSE_RESTRICTIONS'
+     
+    config = ConfigParser.ConfigParser()
+     
+    cfgFileName = os.path.join(PATH_INI, CONFIG_FILE)
+    config.read(cfgFileName)    
+    
+    for licenseServerName, restrictionSettings in settings.iteritems():
+        config.set(SECTION_LINCENSE_RESTRICTIONS, licenseServerName, restrictionSettings)
+    
+    fo = open(cfgFileName, 'wt')
+    config.write(fo)
+    fo.close()
+    
 #==============================================================================
 
 def runSubprocess(command, returnOutput=True, cwd=None):

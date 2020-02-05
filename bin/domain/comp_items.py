@@ -343,6 +343,7 @@ class Resources(object):
         cls._getTokenStatus()
         cls._setupAvailableMetaPostprocessing()
         
+        cls._setupLicenseRestriction()
 #         print cls.executionServers
 #         print cls.availableLicenseServerHosts
 #         print cls.jobsInQueue
@@ -365,6 +366,18 @@ class Resources(object):
         
         bi.BaseExecutionServerType.connectResources(cls)
         Queue.connectResources(cls)
+    
+    #---------------------------------------------------------------------------
+    @classmethod
+    def _setupLicenseRestriction(cls):
+        
+        for licenseServerTypeName, restrictionSettings in utils.getRestrictionConfig().iteritems():
+            
+            restriction = bi.BaseLicenseRestrictionType.getFromConfig(
+                licenseServerTypeName, restrictionSettings)
+                        
+            licenseServerType = bi.BaseLicenseServerType.getLicenseServerTypeFromName(licenseServerTypeName)
+            licenseServerType.setRestriction(restriction)
         
     #--------------------------------------------------------------------------
     @classmethod
@@ -656,7 +669,7 @@ class RunningJob(object):
         self.name = self._attributes['JB_name']
         self.jobTag = self.getTag(attributes)
         
-        self.licenceServer = bi.BaseLicenseServerType.getLicenseServerTypeFromName(
+        self.licenceServer = bi.BaseLicenseServerType.getLicenseServerTypeFromCode(
             self._attributes['hard_req_queue'])
         
         noOfTokens = 0

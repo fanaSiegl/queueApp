@@ -165,11 +165,11 @@ from domain import profile_items as pi
 
 from presentation import comp_widgets as cw
 from presentation import base_widgets as bw
-
+from presentation import dialogs
 
 #==============================================================================
 
-DEBUG = 0
+DEBUG = 1
 
 #==============================================================================
 
@@ -221,6 +221,9 @@ class QueueApplication(QtGui.QApplication):
         
         self.mainWindow.runningJobFileListWidget.itemForTrackingSelected.connect(
             self._setupFileTracking)
+        
+        self.mainWindow.licenseSettingAction.triggered.connect(self.setLicenseRestriction)
+        self.mainWindow.exitAction.triggered.connect(self.closeAllWindows)
     
     #---------------------------------------------------------------------------
 
@@ -230,16 +233,7 @@ class QueueApplication(QtGui.QApplication):
         
         self.mainWindow.centralWidget().queueTabWidget.updateContent()
         self.mainWindow.showStatusMessage('Status updated')
-    
-    #---------------------------------------------------------------------------
-
-    def showInfoMessage(self, message):
         
-        self.restoreOverrideCursor()
-        
-        QtGui.QMessageBox.information(self.mainWindow, '%s' % self.APPLICATION_NAME,
-                str(message))
-    
     #---------------------------------------------------------------------------
 
     def _setupJobTracking(self, jobItem):
@@ -255,6 +249,33 @@ class QueueApplication(QtGui.QApplication):
 #         self.mainWindow.fileContentTrackerDock.setVisible(True)
 #         self.mainWindow.setDockGeometry(self.mainWindow.fileContentTrackerDock)
         self.mainWindow.fileContentTrackerWidget.setupContent(jobItem, fileName)
+    
+    #---------------------------------------------------------------------------
+
+    def showInfoMessage(self, message):
+        
+        self.restoreOverrideCursor()
+        
+        QtGui.QMessageBox.information(self.mainWindow, '%s' % self.APPLICATION_NAME,
+                str(message))
+        
+    #---------------------------------------------------------------------------
+    
+    def checkAuthority(self):
+        
+        if self.userName in ei.AUTHENTICATION: 
+            return ei.AUTHENTICATION[self.userName]
+        else:
+            return ei.USER
+    
+    #---------------------------------------------------------------------------
+    
+    def setLicenseRestriction(self):
+        
+        retCode = dialogs.LinceseRestrictionSettingDialog(self).exec_()
+        
+        if retCode:
+            self.showInfoMessage('License restriction definitions updated.')
         
 
 #===============================================================================
@@ -272,7 +293,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.parentApplication = parentApplication
                         
-#         self._setupActions()
+        self._setupActions()
         self._setupWidgets()
 
         self._setWindowGeometry()
@@ -348,6 +369,23 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.runningJobFileListDock.hide()
             self.fileContentTrackerDock.hide()
+    
+    #--------------------------------------------------------------------------
+
+    def _setupActions(self):
+        
+        if not self.parentApplication.checkAuthority():
+            return
+        
+        self.licenseSettingAction = QtGui.QAction('License availability', self)
+
+        self.exitAction = QtGui.QAction('&Quit', self)
+        self.exitAction.setShortcut('Ctrl+Q')
+        
+        menuBar = self.menuBar()
+        fileMenu = menuBar.addMenu('Settings')
+        fileMenu.addAction(self.licenseSettingAction)
+        fileMenu.addAction(self.exitAction)
         
     #--------------------------------------------------------------------------
 
@@ -364,110 +402,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.statusBar().showMessage(message, self.STATUSBAR_MESSAGE_DURATION)
 
-    #--------------------------------------------------------------------------
-
-    def _setupActions(self):
-
-        self.importAction = QtGui.QAction('&Import material', self)
-        self.importAction.setShortcut('Ctrl+I')
-        self.importAction.setIcon(
-            QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'document-new.png')))
-        self.openAction = QtGui.QAction('&Open user DB', self)
-        self.openAction.setShortcut('Ctrl+O')
-        self.openAction.setIcon(
-            QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'document-open.png')))
-        self.saveAction = QtGui.QAction('&Save changes to global DB', self)
-        self.saveAction.setShortcut('Ctrl+S')
-        self.saveAction.setIcon(
-            QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'document-save.png')))
-        self.saveAsAction = QtGui.QAction('Save user DB as', self)
-        self.saveAsAction.setIcon(
-            QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'document-save-as.png')))
-        
-        
-        
-        self.exportAction = QtGui.QAction('&Export', self)
-        self.exportAction.setShortcut('Ctrl+E')
-        self.exportAction.setIcon(
-            QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'download.png')))
-        self.exitAction = QtGui.QAction('&Quit', self)
-        self.exitAction.setShortcut('Ctrl+Q')
-        self.aboutAction = QtGui.QAction('&About', self)
-        self.aboutAction.setShortcut('Ctrl+H')
-        self.showDocumentationAction = QtGui.QAction('&Documentation', self)
-        self.showDocumentationAction.setShortcut('Ctrl+D')
-                
-        self.insertAnalyticalModelAction = QtGui.QAction('Insert Analytical Model', self)
-        self.insertAnalyticalModelAction.setIcon(
-            QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'formula.png')))
-        
-        self.modifyDbTreeStructureAction = QtGui.QAction('Modify DB tree structure', self)
-        self.modifyDbTreeStructureAction.setIcon(
-            QtGui.QIcon(os.path.join(utils.PATH_ICONS, 'view-web-browser-dom-tree.png')))
-        
-#         self.showMeshLineCoastAction = QtGui.QAction('Show Mesh Line &Coast', self, checkable=True)
-#         self.showMeshLineCoastAction.setShortcut('Ctrl+C')
-#         self.showMeshLineDriveAction = QtGui.QAction('Show Mesh Line &Drive', self, checkable=True)
-#         self.showMeshLineDriveAction.setShortcut('Ctrl+D')
-# 
-#         self.autoShowMeshLinesAction = QtGui.QAction('Auto-Show &Mesh Lines', self, checkable=True)
-#         self.autoShowMeshLinesAction.setShortcut('Ctrl+M')
-# 
-#         self.showLegendAction = QtGui.QAction('Show Legend', self, checkable=True)
-#         self.viewFixedAction = QtGui.QAction('&Fixed View', self, checkable=True)
-#         self.viewFixedAction.setShortcut('Ctrl+F')
-
-        menuBar = self.menuBar()
-        fileMenu = menuBar.addMenu('&File')
-        fileMenu.addAction(self.importAction)
-        fileMenu.addAction(self.openAction)
-        fileMenu.addAction(self.saveAction)
-        fileMenu.addAction(self.saveAsAction)
-        fileMenu.addSeparator()
-        fileMenu.addAction(self.exportAction)
-        fileMenu.addSeparator()
-        fileMenu.addAction(self.exitAction)
-        
-        toolsMenu = menuBar.addMenu('&Tools')
-#         unitSystemMenu = toolsMenu.addMenu('Unit system')
-#         
-#         self.unitSystemActions = list()
-#         for unitSystemName in ei.UNIT_SYSTEMS:
-#             currentUSAction = QtGui.QAction(unitSystemName, self)
-#             currentUSAction.setCheckable(True)
-#             self.unitSystemActions.append(currentUSAction)
-#             unitSystemMenu.addAction(currentUSAction)
-        toolsMenu.addAction(self.insertAnalyticalModelAction)
-        
-        
-        viewMenu = menuBar.addMenu('&View')
-        viewMenu.addAction(self.modifyDbTreeStructureAction)
-        
-        
-#         viewMenu = menuBar.addMenu('&View')
-#         viewMenu.addAction(self.showMeshLineCoastAction)
-#         viewMenu.addAction(self.showMeshLineDriveAction)
-#         viewMenu.addAction(self.autoShowMeshLinesAction)
-#         viewMenu.addAction(self.showLegendAction)
-#         viewMenu.addAction(self.viewFixedAction)
-
-        helpMenu = menuBar.addMenu('&Help')
-        helpMenu.addAction(self.aboutAction)
-        helpMenu.addAction(self.showDocumentationAction)
-
-        toolbar = self.addToolBar('File toolbar')
-        toolbar.addAction(self.importAction)
-        toolbar.addAction(self.openAction)
-        toolbar.addAction(self.saveAction)
-        toolbar.addAction(self.saveAsAction)
-        toolbar.addSeparator()
-        toolbar.addAction(self.exportAction)
-        
-        viewToolBar = self.addToolBar('View toolbar')
-        viewToolBar.addAction(self.modifyDbTreeStructureAction)
-        
-#         self.toolsToolbar = bw.ToolsToolbar(self)
-#         self.addToolBar(self.toolsToolbar)
+    
               
     #--------------------------------------------------------------------------
 

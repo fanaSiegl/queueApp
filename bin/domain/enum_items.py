@@ -16,6 +16,23 @@ ALLOWED_PROJECT_PATHS = [
 META_POST_PROCESSING_PATH = '/data/fem/+software/SKRIPTY/tools/python/metaTools/SESSION'
 META_EXECUTABLE = '/usr1/applications/ansa/BETA_CAE_Systems/meta_post_v19.1.1/meta_post64.sh'
 
+#===============================================================================
+
+USER = 0
+EXPERT_USER = 1
+ADMIN = 2
+
+AUTHENTICATION = {
+    'siegl' : ADMIN,
+#     'siegl' : USER,
+    'stekly': EXPERT_USER,
+    'bouda' : EXPERT_USER}
+
+AUTHENTICATION_RULES = {
+    USER : 'User',
+    EXPERT_USER : 'Expert user',
+    ADMIN : 'Admin'}
+
 #==============================================================================
 
 class SolverVersionException(Exception): pass
@@ -105,4 +122,5 @@ class AnalysisTypes(object):
     PAMCRASH = {
         'IMPLICIT' : IMPLICIT,
         'EXPLICIT' : EXPLICIT}
-    
+
+

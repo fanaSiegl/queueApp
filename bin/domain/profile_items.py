@@ -67,6 +67,7 @@ class BaseExecutionProfileType(object):
         
         self._setInputFile()
         self._setLicenseServer()
+        self._checkLicenseRestriction()
         self._setSolverVersion()
         self._setExecutionServer()
         self._setNumberOfCores()
@@ -76,9 +77,24 @@ class BaseExecutionProfileType(object):
         self._setJobDescription()
         self._setAdditionalSolverParams()
         self._setPostProcessingType()
-        
+
         logging.info("Info- Required licenses for this job: %s" % self.job.getTokensRequired())
         
+    #--------------------------------------------------------------------------
+    
+    def _checkLicenseRestriction(self):
+        
+        licenseServer = self.jobSettings.licenseServer
+        
+        if licenseServer.restriction.isActivated():
+            message = '%sSelected license server is restricted from usage:\n%s%s' % (
+                utils.ConsoleColors.FAIL, licenseServer.restriction.getOverviewMessage(), utils.ConsoleColors.ENDC)
+             
+            reply = si.BaseDataSelector.getBooleanInput(message,
+                'Do you want to ignore restrictions and submit the job anyway? ["yes" or "no", enter=no] ')
+            if not reply:
+                raise si.DataSelectorException('Submitting canceled!')
+
     #--------------------------------------------------------------------------
 
     def _setInputFile(self, inpFileNames=None):

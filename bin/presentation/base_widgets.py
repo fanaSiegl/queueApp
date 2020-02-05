@@ -3,6 +3,7 @@
 
 import os
 import sys
+import time
 import glob
 import subprocess
 from functools import partial
@@ -10,7 +11,13 @@ import xml.etree.ElementTree as ETree
 
 from PyQt4 import QtCore, QtGui
 
-# from domain import base_items as bi
+from domain import utils
+from domain import base_items as bi
+
+
+#==============================================================================
+
+LICENSE_RESTRICTION_TYPE_WIDGETS = dict()
 
 #==============================================================================
 
@@ -38,7 +45,119 @@ class SignalGenerator(QtCore.QTimer):
 
         self.values = list()
         self.start(self.PERIOD*1000)
+
+#=============================================================================
+
+class BaseRestrictionSettingsWidget(QtGui.QWidget):
+    
+    container = LICENSE_RESTRICTION_TYPE_WIDGETS
+    NAME = bi.BaseLicenseRestrictionType.NAME
+    
+    def __init__(self):
+        super(BaseRestrictionSettingsWidget, self).__init__()
         
+        self.settings = ''
+        
+        self._setupWidgets()
+        self._setupConnections()
+        
+    #---------------------------------------------------------------------------
+    
+    def _setupWidgets(self):
+        
+        self.setLayout(QtGui.QHBoxLayout())
+        
+        self.layout().addWidget(QtGui.QLabel(''))
+    
+    #---------------------------------------------------------------------------
+
+    def _setupConnections(self): pass
+    
+    #-------------------------------------------------------------------------
+    
+    def getConfig(self):
+        
+        return ''
+    
+    #-------------------------------------------------------------------------
+    
+    def setConfig(self, settings): pass
+        
+    
+    
+
+#==============================================================================
+@utils.registerClass
+class NoLicenseRestrictionTypeSettingsWidget(BaseRestrictionSettingsWidget):
+        
+    NAME = bi.NoLicenseRestrictionType.NAME
+    
+    #-------------------------------------------------------------------------
+    
+    def getConfig(self):
+        
+        return self.NAME
+        
+#==============================================================================
+@utils.registerClass
+class LicenseTimeRestrictionTypeSettingsWidget(BaseRestrictionSettingsWidget):
+    
+    NAME = bi.LicenseTimeRestrictionType.NAME
+    TIME_FORMAT = 'dd/MM/yyyy_hh:mm'
+    
+    DFT_MESSAGE = 'License reserved until: 31/12/2099 23:59'
+            
+    #---------------------------------------------------------------------------
+    
+    def _setupWidgets(self):
+        
+        self.setLayout(QtGui.QHBoxLayout())
+        
+        self.startDateTimeEdit = QtGui.QDateTimeEdit()
+        self.startDateTimeEdit.setDate(QtCore.QDate.currentDate())
+        self.startDateTimeEdit.setDisplayFormat(self.TIME_FORMAT)
+        self.startDateTimeEdit.setCalendarPopup(True)
+        
+        self.endDateTimeEdit = QtGui.QDateTimeEdit()
+        self.endDateTimeEdit.setDate(QtCore.QDate.currentDate())
+        self.endDateTimeEdit.setDisplayFormat(self.TIME_FORMAT)
+        self.endDateTimeEdit.setCalendarPopup(True)
+        
+        self.messageLineEdit = QtGui.QLineEdit()
+        self.messageLineEdit.setText(self.DFT_MESSAGE)
+        
+        self.layout().addWidget(QtGui.QLabel('start'))
+        self.layout().addWidget(self.startDateTimeEdit)
+        self.layout().addWidget(QtGui.QLabel('end'))
+        self.layout().addWidget(self.endDateTimeEdit)
+        self.layout().addWidget(QtGui.QLabel('message'))
+        self.layout().addWidget(self.messageLineEdit)
+            
+    #-------------------------------------------------------------------------
+    
+    def getConfig(self):
+        
+        startTime = self.startDateTimeEdit.dateTime().toString(self.TIME_FORMAT)
+        endTime = self.endDateTimeEdit.dateTime().toString(self.TIME_FORMAT)
+        message = self.messageLineEdit.text()
+        
+        return str(self.NAME + "(start='%s', end='%s', message='%s')" % (
+            startTime, endTime, message))
+    
+    #-------------------------------------------------------------------------
+    
+    def setConfig(self, parentRestrictionItem):
+                
+        startTime = time.strftime(parentRestrictionItem.TIME_FORMAT, parentRestrictionItem.startTime)
+        endTime = time.strftime(parentRestrictionItem.TIME_FORMAT, parentRestrictionItem.endTime)
+
+        self.startDateTimeEdit.setDateTime(QtCore.QDateTime.fromString(
+            startTime, self.TIME_FORMAT))
+        self.endDateTimeEdit.setDateTime(QtCore.QDateTime.fromString(
+            endTime, self.TIME_FORMAT))
+        self.messageLineEdit.setText(parentRestrictionItem.message)
+        
+      
 #=============================================================================
 
 class BaseSelectorWidget(QtGui.QWidget):
