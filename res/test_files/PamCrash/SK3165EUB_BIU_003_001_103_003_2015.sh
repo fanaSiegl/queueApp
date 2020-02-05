@@ -6,7 +6,7 @@
 #$ -N SK3165EUB_BIU_003_001_103_003_2015
 #$ -p -50
 #$ -ac popis_ulohy=-
-#$ -a 02051753
+#$ -a 02051837
 #$ -M frantisek.siegl@idiada.cz
 #$ -m beas
 scratch_dir=/scr1/scratch/grid/siegl/$JOB_NAME.$JOB_ID

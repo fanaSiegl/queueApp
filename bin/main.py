@@ -169,7 +169,7 @@ from presentation import dialogs
 
 #==============================================================================
 
-DEBUG = 1
+DEBUG = 0
 
 #==============================================================================
 
@@ -275,7 +275,8 @@ class QueueApplication(QtGui.QApplication):
         retCode = dialogs.LinceseRestrictionSettingDialog(self).exec_()
         
         if retCode:
-            self.showInfoMessage('License restriction definitions updated.')
+            self.showInfoMessage('License restriction definitions updated.\nNew \
+settings will take effect by the next application start.')
         
 
 #===============================================================================

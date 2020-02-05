@@ -26,7 +26,10 @@ AUTHENTICATION = {
     'siegl' : ADMIN,
 #     'siegl' : USER,
     'stekly': EXPERT_USER,
-    'bouda' : EXPERT_USER}
+    'bouda' : EXPERT_USER,
+    'marada' : EXPERT_USER,
+    'cejpek' : EXPERT_USER,
+    }
 
 AUTHENTICATION_RULES = {
     USER : 'User',
