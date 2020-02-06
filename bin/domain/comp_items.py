@@ -588,8 +588,8 @@ class Resources(object):
         
         licenseServerTypes = list()
         licenseServerTypes.extend(bi.LICENSE_SERVER_TYPES)
-        licenseServerTypes.extend(bi.PAMCRASH_LICENSE_SERVER_TYPES)
-        licenseServerTypes.extend(bi.NASTRAN_LICENSE_SERVER_TYPES)
+#         licenseServerTypes.extend(bi.PAMCRASH_LICENSE_SERVER_TYPES)
+#         licenseServerTypes.extend(bi.NASTRAN_LICENSE_SERVER_TYPES)
         
         lines = stdout.splitlines()
         

@@ -64,17 +64,14 @@ class AbaqusInpFile(object):
             rawLine = line
             line = line.upper()
             if line.startswith('*INCLUDE'):
-                parts = rawLine.split()
-                includeParts = parts[-1].strip()
-                includePart = includeParts.split('=')
-                keyPart = includePart[0].strip()
-                
-                # skip encripted includes
-                if keyPart.upper() == 'PASSWORD':
-                    continue
-                includeFile = includePart[-1]
-                
-                self.includeFiles.append(includeFile)            
+                parts = [p.strip() for p in rawLine.split(',')]
+                for part in parts[1:]:
+                    if part.upper().startswith('INPUT'):
+                        includeParts = part.split('=')
+                        includeFile = includeParts[-1].strip()
+                        
+                        self.includeFiles.append(includeFile)
+                                 
             elif line.startswith('*STEP'):
                 if 'PERTURBATION' in line:
                     self.stepPerturbation = True
