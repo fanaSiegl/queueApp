@@ -237,6 +237,21 @@ class BaseSubmitWidget(QtGui.QWidget):
             
             self.parentApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         
+        # check max number of tokens
+        if self.profile.job.getTokensRequired() > self.profile.jobSettings.licenseServer.getMaxTokens():
+            self.parentApplication.restoreOverrideCursor()
+            
+            message = 'It seems that current settings (tokens required: %s) exceeds the maximum available tokens (tokens available: %s).\n\
+Are you sure to submit the job with the current settings?' % (
+                self.profile.job.getTokensRequired(),
+                self.profile.jobSettings.licenseServer.getMaxTokens())
+            reply = QtGui.QMessageBox.question(self.parentApplication.mainWindow, 'License restriction', 
+                message, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.No:
+                return
+            
+            self.parentApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+            
         message = ''
         for inpFileName in self.profile.inpFileNames:
             newJob = self.profile.job.getCopy()
@@ -697,18 +712,22 @@ class ToscaSubmitWidget(BaseSubmitWidget):
         selectorItem = pi.ToscaExecutionProfileSelector(self)
         self.profileSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.profileSelectorWidget)
-                
-        selectorItem = si.NastranLicenseServerSelector(self)
+        
+        selectorItem = si.LicenseServerSelector(self)
         self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
         
-        selectorItem = si.ToscaSolverVersionSelector(self)
-        self.toscaSolverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
-        self.rightPaneWidget.layout().addWidget(self.toscaSolverVersionSelectorWidget)
+#         selectorItem = si.NastranLicenseServerSelector(self)
+#         self.licenseServerSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+#         self.rightPaneWidget.layout().addWidget(self.licenseServerSelectorWidget)
         
-        selectorItem = si.SolverVersionSelector(self)
+        selectorItem = si.ToscaSolverVersionSelector(self)
         self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
         self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
+        
+#         selectorItem = si.SolverVersionSelector(self)
+#         self.solverVersionSelectorWidget = bw.BaseSelectorWidget(selectorItem)
+#         self.rightPaneWidget.layout().addWidget(self.solverVersionSelectorWidget)
         
         groupLayout = QtGui.QVBoxLayout()
         group = QtGui.QGroupBox('Parameters')
@@ -749,29 +768,29 @@ class ToscaSubmitWidget(BaseSubmitWidget):
 
     #---------------------------------------------------------------------------
     
-    def _initiateOptions(self):
-        super(ToscaSubmitWidget, self)._initiateOptions()
-        
-        self.toscaSolverVersionSelectorWidget.setupOptions()
-           
-        self.submitButton.setEnabled(False)       
+#     def _initiateOptions(self):
+#         super(ToscaSubmitWidget, self)._initiateOptions()
+#         
+#         self.toscaSolverVersionSelectorWidget.setupOptions()
+#            
+#         self.submitButton.setEnabled(False)       
     
     #--------------------------------------------------------------------------
 
-    def _setupConnections(self):
-        super(ToscaSubmitWidget, self)._setupConnections()
-        
-        self.toscaSolverVersionSelectorWidget.changed.connect(self._setToscaSolverVersion)
+#     def _setupConnections(self):
+#         super(ToscaSubmitWidget, self)._setupConnections()
+#         
+#         self.toscaSolverVersionSelectorWidget.changed.connect(self._setToscaSolverVersion)
     
     #--------------------------------------------------------------------------
 
-    def _setToscaSolverVersion(self, solverVersion):
-        
-        self.profile.job.setToscaSolverVersion(solverVersion)
-        
-        # update additional solver parameters
-        self.solverParametersSelectorWidget.setDefaultOption(
-            self.profile.getDftAdditionalSolverParams())
+#     def _setToscaSolverVersion(self, solverVersion):
+#         
+#         self.profile.job.setToscaSolverVersion(solverVersion)
+#         
+#         # update additional solver parameters
+#         self.solverParametersSelectorWidget.setDefaultOption(
+#             self.profile.getDftAdditionalSolverParams())
         
                         
 #===============================================================================

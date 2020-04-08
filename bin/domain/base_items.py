@@ -521,7 +521,13 @@ class BaseLicenseServerType(object):
             
         return freeLicenseServer
     
-    
+    #-------------------------------------------------------------------------
+    @classmethod
+    def getMaxTokens(cls):
+        
+        status = cls.getTokenStatus()
+        
+        return status['total']
         
 
 #==============================================================================

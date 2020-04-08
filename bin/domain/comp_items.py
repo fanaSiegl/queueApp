@@ -22,6 +22,9 @@ import profile_items as pi
 from persistent import file_items as fi
 from interfaces import xmlio
 
+#==============================================================================
+
+class JobException(Exception): pass
 
 #==============================================================================
 
@@ -254,11 +257,31 @@ class ToscaJob(AbaqusJob):
     
     #--------------------------------------------------------------------------
     
-    def setToscaSolverVersion(self, toscaSolverVersion):
+    def setSolverVersion(self, toscaSolverVersion):
         
         self.toscaSolverVersion = toscaSolverVersion
         
         logging.info('Selected TOSCA version: %s' % self.toscaSolverVersion)
+    
+    #--------------------------------------------------------------------------
+    
+    def getTokensRequired(self):
+        
+        # original number of tokens based of CPU number
+        tokensRequired = super(ToscaJob, self).getTokensRequired()
+        
+        # search analysis type
+        if len(self.inpFile.abaqusInputFiles) > 0:
+            abaqusInputFile = self.inpFile.abaqusInputFiles[0]
+            if abaqusInputFile.stepPerturbation:
+                tokensRequired += 50
+            else:
+                tokensRequired += 80
+        else:
+            raise fi.ToscaInpFileException(
+                'No ABAQUS input file found in TOSCA *.par file! ("%s")' % self.inpFile.fileName)
+        
+        return tokensRequired
                
 #==============================================================================
 

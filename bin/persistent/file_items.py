@@ -29,6 +29,10 @@ class NastranInpFileException(Exception): pass
 
 #==============================================================================
 
+class ToscaInpFileException(Exception): pass
+
+#==============================================================================
+
 class AbaqusInpFile(object):
     
     ANALYSIS_CONTENT_FILE_EXTS = ['*.res', '*.mdl', '*.stt', '*.prt', '*.odb',
@@ -49,17 +53,17 @@ class AbaqusInpFile(object):
         self.subAllFiles = False
         self.retAllFiles = False
                 
-        self._analyseContent()
-        self._checkIncludedFiles(self.includeFiles)
-        self._checkIncludedFiles(self.fillFiles)
+        self._analyseContent(self.fileName)
+#         self._checkIncludedFiles(self.includeFiles)
+#         self._checkIncludedFiles(self.fillFiles)
                 
     #-------------------------------------------------------------------------
     
-    def _analyseContent(self):
+    def _analyseContent(self, fileName):
         
-        fi = open(self.fileName, 'rt')
-        
-        for line in fi.readlines():
+        fi = open(fileName, 'rt')
+                                    
+        for line in fi.readlines():            
             # line with commands is non-case sensitive except parameters
             rawLine = line
             line = line.upper()
@@ -70,7 +74,7 @@ class AbaqusInpFile(object):
                         includeParts = part.split('=')
                         includeFile = includeParts[-1].strip()
                         
-                        self.includeFiles.append(includeFile)
+                        self._registerIncludeFile(fileName, includeFile)
                                  
             elif line.startswith('*STEP'):
                 if 'PERTURBATION' in line:
@@ -87,7 +91,8 @@ class AbaqusInpFile(object):
                 parts = rawLine.split()
                 fillPart = parts[-1].strip()
                 fillFile = fillPart.split('=')[-1]               
-                self.fillFiles.append(fillFile)
+#                 self.fillFiles.append(fillFile)
+                self._registerIncludeFile(fileName, fillFile, 'fillFiles')
             elif '*FREQUENCY' in line:
                 parts = line.split(',')
                 for part in parts:
@@ -96,18 +101,54 @@ class AbaqusInpFile(object):
                         self.eigSolver = params[-1].strip()
             
         fi.close()
-
+    
     #-------------------------------------------------------------------------
     
-    def _checkIncludedFiles(self, filesNames):
-      
-        for includedFile in filesNames:
-            includedFileAbs = os.path.normpath(os.path.join(self.dirName, includedFile))
+    def _registerIncludeFile(self, parentFilePath, includedFile, containerName='includeFiles'):
+                
+        includedFileAbs = os.path.normpath(os.path.join(
+            os.path.dirname(parentFilePath), includedFile))
+        
+        self._checkIncludedFile(includedFileAbs)
+        
+        container = getattr(self, containerName)
+        container.append(includedFileAbs)
+                
+        # check for recursive include definition
+        self._analyseContent(includedFileAbs)
+    
+    #-------------------------------------------------------------------------
+    
+    def getIncludeFiles(self):
+        
+        relativeIncludeFilePaths = list()
+        for fileName in self.includeFiles:
+            path = os.path.relpath(fileName, self.dirName)
+            relativeIncludeFilePaths.append(path)
+        
+        return relativeIncludeFilePaths
+    
+    #-------------------------------------------------------------------------
+    
+    def getAllFiles(self):
+        
+        files = [os.path.basename(self.fileName)]
+        files.extend(self.getIncludeFiles())
+        
+        return files
+    
+    #-------------------------------------------------------------------------
+    
+    def _checkIncludedFile(self, includedFileAbs):
+#     def _checkIncludedFiles(self, filesNames):
+#       
+#         for includedFileAbs in filesNames:
+#             includedFileAbs = os.path.normpath(os.path.join(self.dirName, includedFile))
             
-            if not os.path.exists(includedFileAbs):
-                message = 'File defined in the input file does not exist!'
-                message += '\nMissing file: %s' % includedFileAbs
-                raise InpFileException(message)
+        if not os.path.exists(includedFileAbs):
+            message = 'File defined in the input file does not exist!'
+            message += '\nMissing file: %s' % includedFileAbs
+            raise InpFileException(message)
                    
     #-------------------------------------------------------------------------
     
@@ -136,14 +177,14 @@ class PamCrashInpFile(AbaqusInpFile):
         self.subAllFiles = False
         self.dataCheck = False
                 
-        self._analyseContent()
-        self._checkIncludedFiles(self.includeFiles)
+        self._analyseContent(self.fileName)
+#         self._checkIncludedFiles(self.includeFiles)
         
     #-------------------------------------------------------------------------
     
-    def _analyseContent(self):
+    def _analyseContent(self, fileName):
         
-        fi = open(self.fileName, 'rt')
+        fi = open(fileName, 'rt')
         
         for line in fi.readlines():
             # line with commands is non-case sensitive except parameters
@@ -155,7 +196,7 @@ class PamCrashInpFile(AbaqusInpFile):
 #                 includeFileParts = includePart.split('/')[1:]
 #                 includeFile = '/'.join(includeFileParts)
                 
-                self.includeFiles.append(includeFile)
+                self._registerIncludeFile(fileName, includeFile)
             elif line.startswith('ANALYSIS'):
                 parts = line.split()
                 try:
@@ -223,14 +264,14 @@ class NastranInpFile(AbaqusInpFile):
         self.includeFiles = list()
         self.subAllFiles = False
                 
-        self._analyseContent()
-        self._checkIncludedFiles(self.includeFiles)
+        self._analyseContent(self.fileName)
+#         self._checkIncludedFiles(self.includeFiles)
     
     #-------------------------------------------------------------------------
     
-    def _analyseContent(self):
+    def _analyseContent(self, fileName):
         
-        fi = open(self.fileName, 'rt')
+        fi = open(fileName, 'rt')
         
         for line in fi.readlines():
             # line with commands is non-case sensitive except parameters
@@ -240,7 +281,7 @@ class NastranInpFile(AbaqusInpFile):
                 parts = rawLine.split()
                 includeFile = parts[-1].strip('"').strip("'")
                               
-                self.includeFiles.append(includeFile)
+                self._registerIncludeFile(fileName, includeFile)
             
 
 #==============================================================================
@@ -255,25 +296,46 @@ class ToscaInpFile(AbaqusInpFile):
         
         self.includeFiles = list()
         self.subAllFiles = False
-                
-        self._analyseContent()
-        self._checkIncludedFiles(self.includeFiles)
+        self.abaqusInputFiles = list()
+        
+        self._analyseContent(self.fileName)
+#         self._checkIncludedFiles(self.includeFiles)
     
     #-------------------------------------------------------------------------
     
-    def _analyseContent(self):
+    def _analyseContent(self, fileName):
         
-        fi = open(self.fileName, 'rt')
+        fi = open(fileName, 'rt')
         
         for line in fi.readlines():
             # line with commands is non-case sensitive except parameters
             rawLine = line
             line = line.upper().strip()
-            if line.startswith('FILE'):
-                parts = rawLine.split('=')
-                includeFile = parts[-1].strip()
-                              
-                self.includeFiles.append(includeFile)
+            parts = rawLine.split('=')
+            # parameter input
+            if len(parts) == 2:
+                paramName = parts[0].strip().upper()
+                if paramName == 'FILE':
+                    
+                    includeFile = parts[-1].strip()
+                    
+                    self._registerIncludeFile(fileName, includeFile)
+                    
+                    # add embedded includes
+                    includedFileAbs = os.path.normpath(os.path.join(
+                        os.path.dirname(fileName), includeFile))
+                    abaqusInputFile = AbaqusInpFile(includedFileAbs)
+                    self.abaqusInputFiles.append(abaqusInputFile)
+                    
+                    for includeFile in abaqusInputFile.getIncludeFiles():
+                        self._registerIncludeFile(includedFileAbs, includeFile)
+            
+            if line.startswith('INCLUDE'):
+                parts = rawLine.split(',')
+                includeFile = parts[-1].strip('"').strip("'").strip()
+                
+                self._registerIncludeFile(fileName, includeFile)
+
     
 #==============================================================================
 
@@ -538,6 +600,24 @@ class NastranJobExecutableFile(PamCrashJobExecutableFile):
 
 class ToscaJobExecutableFile(PamCrashJobExecutableFile):
     
+    #-------------------------------------------------------------------------
+    
+    def _getDescriptionContent(self):
+        
+        content = super(ToscaJobExecutableFile, self)._getDescriptionContent()
+        contentLines = content.split('\n')
+        includeFiles = self.parentJob.inpFile.getAllFiles()
+        
+        variableContenLines = ['#$ -v input_files_count=%s' % len(includeFiles)]
+        for index, includeFile in enumerate(includeFiles):
+            variableContenLines.append('#$ -v input_file_%i=%s' % (index + 1, includeFile))        
+        
+        allLines = contentLines[:-3]
+        allLines.extend(variableContenLines)
+        allLines.extend(contentLines[-3:])
+        
+        return '\n'.join(allLines)
+            
     #-------------------------------------------------------------------------
     
     def _getRunCommand(self):

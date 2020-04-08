@@ -74,7 +74,7 @@ class TestAbaqusInpFile(unittest.TestCase):
         self.assertFalse(inputFile.stepPerturbation)
         self.assertFalse(inputFile.dynamicsExplicit)
         self.assertIsNone(inputFile.eigSolver)
-        self.assertEqual(len(inputFile.includeFiles), 6)
+        self.assertEqual(len(inputFile.getIncludeFiles()), 6)
         
     #-------------------------------------------------------------------------
     
@@ -103,7 +103,8 @@ class TestPamCrashInpFile(unittest.TestCase):
             PAMCRASH_INP_FILE_PATH, 'SK3165EUB_BIU_003_001_103_003_2015.pc')
         
         inputFile = fi.PamCrashInpFile(testInpFile)
-        self.assertEqual(len(inputFile.includeFiles), 6)
+                
+        self.assertEqual(len(inputFile.getIncludeFiles()), 9)
         self.assertEqual(inputFile.analysisType, ei.AnalysisTypes.EXPLICIT)
     
     #-------------------------------------------------------------------------
@@ -164,8 +165,8 @@ class TestNastranInpFile(unittest.TestCase):
             NASTRAN_INP_FILE_PATH, 'LEAF-JPN_VC_NCAP-NVH_BENDING_001_04.bdf')
         
         inputFile = fi.NastranInpFile(testInpFile)
-        self.assertEqual(len(inputFile.includeFiles), 1)        
-        self.assertEqual(inputFile.includeFiles[0], 'LEAF-NVH_no_axes_01.inc')
+        self.assertEqual(len(inputFile.getIncludeFiles()), 1)        
+        self.assertEqual(inputFile.getIncludeFiles()[0], 'LEAF-NVH_no_axes_01.inc')
         
         testInpFile = os.path.join(NASTRAN_INP_FILE_PATH,
             'LEAF-JPN_VC_NCAP-NVH_BENDING_001_05_missing_include.bdf')
@@ -180,10 +181,12 @@ class TestToscaInpFile(unittest.TestCase):
     def test_analyseContentIncludeFiles(self):
         
         testInpFile = os.path.join(
-            TOSCA_INP_FILE_PATH, 'control_arm_topo_controller_casting_01.par')
+            TOSCA_INP_FILE_PATH, 'multi_par', 'Topology_optimization_linear_static_MIN.par')
         
         inputFile = fi.ToscaInpFile(testInpFile)
-        self.assertEqual(len(inputFile.includeFiles), 1)        
-        self.assertEqual(inputFile.includeFiles[0], 'control_arm_whole.inp')
+        self.assertEqual(len(inputFile.getIncludeFiles()), 4)        
+        self.assertEqual(inputFile.getIncludeFiles()[-1], 'Topology_objective_func_compliance_MIN_include.par')
+        
+        
                 
 #==============================================================================
