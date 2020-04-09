@@ -245,7 +245,7 @@ class BaseSubmitWidget(QtGui.QWidget):
 Are you sure to submit the job with the current settings?' % (
                 self.profile.job.getTokensRequired(),
                 self.profile.jobSettings.licenseServer.getMaxTokens())
-            reply = QtGui.QMessageBox.question(self.parentApplication.mainWindow, 'License restriction', 
+            reply = QtGui.QMessageBox.question(self.parentApplication.mainWindow, 'Token restriction', 
                 message, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
             if reply == QtGui.QMessageBox.No:
                 return
@@ -736,6 +736,9 @@ class ToscaSubmitWidget(BaseSubmitWidget):
         
         self.noOfCoresSelectorWidget = bw.NoOfCoresSelectorWidget()
         groupLayout.addWidget(self.noOfCoresSelectorWidget)
+        
+        self.noOfSolverCoresSelectorWidget = bw.NoOfSolverCoresSelectorWidget()
+        groupLayout.addWidget(self.noOfSolverCoresSelectorWidget)
                 
         self.noOfGpusSelectorWidget = bw.NoOfGpusSelectorWidget()
         groupLayout.addWidget(self.noOfGpusSelectorWidget)
@@ -768,19 +771,24 @@ class ToscaSubmitWidget(BaseSubmitWidget):
 
     #---------------------------------------------------------------------------
     
-#     def _initiateOptions(self):
-#         super(ToscaSubmitWidget, self)._initiateOptions()
+    def _initiateOptions(self):
+        super(ToscaSubmitWidget, self)._initiateOptions()
 #         
 #         self.toscaSolverVersionSelectorWidget.setupOptions()
 #            
-#         self.submitButton.setEnabled(False)       
-    
+#         self.submitButton.setEnabled(False)
+
+        self.noOfSolverCoresSelectorWidget.setDefaultOption(
+            *self.profile.getDftNoOfSolverCores())
+     
     #--------------------------------------------------------------------------
 
-#     def _setupConnections(self):
-#         super(ToscaSubmitWidget, self)._setupConnections()
+    def _setupConnections(self):
+        super(ToscaSubmitWidget, self)._setupConnections()
 #         
 #         self.toscaSolverVersionSelectorWidget.changed.connect(self._setToscaSolverVersion)
+        
+        self.noOfSolverCoresSelectorWidget.changed.connect(self._setNumberOfSolverCores)
     
     #--------------------------------------------------------------------------
 
@@ -791,7 +799,12 @@ class ToscaSubmitWidget(BaseSubmitWidget):
 #         # update additional solver parameters
 #         self.solverParametersSelectorWidget.setDefaultOption(
 #             self.profile.getDftAdditionalSolverParams())
-        
+    
+    #--------------------------------------------------------------------------
+    
+    def _setNumberOfSolverCores(self, numberOfCores):
+                
+        self.profile.job.setNumberOfSolverCores(numberOfCores)
                         
 #===============================================================================
 

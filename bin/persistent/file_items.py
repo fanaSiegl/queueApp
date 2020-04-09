@@ -627,7 +627,7 @@ class ToscaJobExecutableFile(PamCrashJobExecutableFile):
             self.parentJob.numberOfCores, self.parentJob.numberOfSolverCores)
         
         runCommand += ' %s' % self.jobSettings.additionalSolverParams
-        runCommand += ' %s.par > %s.par.out' % (
+        runCommand += ' -j %s.par > %s.par.out' % (
             self.parentJob.inpFile.baseName, self.parentJob.inpFile.baseName)        
                 
         return '%s\n' % runCommand

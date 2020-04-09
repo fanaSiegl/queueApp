@@ -1094,7 +1094,8 @@ class ToscaExecutionProfileType(BaseExecutionProfileType):
     NAME = 'Tosca analysis'
     ID = 0
     
-    DFT_NO_OF_CORES = 4
+    DFT_NO_OF_CORES = 1
+    DFT_NO_OF_SOLVER_CORES = 1
     DFT_EXECUTION_SERVER_INDEX = 1
     DFT_LICENSE_SERVER_INDEX = 1
         
@@ -1169,6 +1170,15 @@ class ToscaExecutionProfileType(BaseExecutionProfileType):
     def getDftNoOfGpus(self):
                     
         return 0, 0, 0
+    
+    #--------------------------------------------------------------------------
+
+    def getDftNoOfSolverCores(self):   
+    
+        maxValue = self.jobSettings.executionServer.NO_OF_CORES
+        minValue = 1
+        
+        return minValue, maxValue, self.DFT_NO_OF_SOLVER_CORES
 
 #==============================================================================
 

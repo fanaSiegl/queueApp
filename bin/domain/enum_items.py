@@ -101,7 +101,7 @@ class ToscaSolverVersions(AbaqusSolverVersions):
     SOLVER_LIST = [
         'tosca19']
     SOLVER_PATHS = {
-        'tosca19' : 'tosca19'}
+        'tosca19' : '/usr1/applications/simulia/Tosca/2019/linux_a64/code/command/ToscaStructure.sh'}
     DFT_VERSION = 'tosca19'
     
 #==============================================================================

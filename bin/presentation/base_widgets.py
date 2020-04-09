@@ -520,6 +520,12 @@ class NoOfCoresSelectorWidget(BaseIntSelectorWidget):
 
 #=============================================================================
 
+class NoOfSolverCoresSelectorWidget(BaseIntSelectorWidget):
+    
+    LABEL = 'Enter number of ABAQUS CPU cores'
+    
+#=============================================================================
+
 class NoOfGpusSelectorWidget(BaseIntSelectorWidget):
     
 #     GROUP_LABEL = 'Choose the number of GPUs'

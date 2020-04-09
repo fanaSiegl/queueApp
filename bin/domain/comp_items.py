@@ -268,7 +268,7 @@ class ToscaJob(AbaqusJob):
     def getTokensRequired(self):
         
         # original number of tokens based of CPU number
-        tokensRequired = super(ToscaJob, self).getTokensRequired()
+        tokensRequired = bi.DslsLicenseType.getNoOfTokens(self.numberOfSolverCores)
         
         # search analysis type
         if len(self.inpFile.abaqusInputFiles) > 0:
@@ -282,6 +282,14 @@ class ToscaJob(AbaqusJob):
                 'No ABAQUS input file found in TOSCA *.par file! ("%s")' % self.inpFile.fileName)
         
         return tokensRequired
+    
+    #--------------------------------------------------------------------------
+    
+    def setNumberOfSolverCores(self, numberOfCores):
+        
+        self.numberOfSolverCores = numberOfCores
+        
+        logging.info('Number of ABAQUS CPU set to: %s' % self.numberOfSolverCores)
                
 #==============================================================================
 
